@@ -525,16 +525,13 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     const session = await getSession();
     if (!session) { window.location.replace('login.html'); return; }
 
-    // Authenticated but not yet part of a dealership → onboarding
-    const membership = await getMembership();
-    if (!membership) { window.location.replace('onboarding.html'); return; }
-
-    // RLS already scopes this to the user's own dealership
+    // No onboarding step: RLS returns this user's dealership if they have
+    // one; otherwise the dashboard renders with default branding.
     const { data: dealership } = await supa
       .from('dealerships')
       .select('*')
-      .eq('id', membership.dealership_id)
-      .single();
+      .limit(1)
+      .maybeSingle();
     if (dealership) applyDealership(dealership);
 
     document.documentElement.style.visibility = 'visible';

@@ -191,10 +191,7 @@
 <script>
   let mode = 'login'; // 'login' or 'signup'
 
-  // Keep any ?invite=TOKEN around (survives the Google OAuth round-trip)
-  rememberInviteToken();
-
-  // Already signed in? Route by membership: dashboard / join via invite / onboarding
+  // Already signed in? Go straight to the dashboard
   (async () => {
     if (await getSession()) routeAfterAuth();
   })();
@@ -263,9 +260,8 @@
   }
 
   async function loginWithGoogle() {
-    rememberInviteToken();
     setMessage('', '');
-    // Comes back to this page; the session check above then routes by membership
+    // Comes back to this page; the session check above then goes to the dashboard
     const { error } = await supa.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin + window.location.pathname }
