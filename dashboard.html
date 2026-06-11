@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>AutoClient AI — Dealer Dashboard</title>
+<title>AutoClient — Dealer Dashboard · Powered by Sri Saamba</title>
+<meta name="description" content="AutoClient — the AI receptionist for car dealerships. Powered by Sri Saamba.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -525,16 +526,33 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     const session = await getSession();
     if (!session) { window.location.replace('login.html'); return; }
 
-    // No onboarding step: RLS returns this user's dealership if they have
-    // one; otherwise the dashboard renders with default branding.
-    const { data: dealership } = await supa
+    // No onboarding step: RLS returns this user's dealership if they
+    // have one. First-time users get a workspace bootstrapped by
+    // seed_demo_data() (dealership + owner membership + demo data).
+    let { data: dealership } = await supa
       .from('dealerships')
       .select('*')
       .limit(1)
       .maybeSingle();
+
+    if (!dealership) {
+      const { data: dealerId, error } = await supa.rpc('seed_demo_data');
+      if (!error && dealerId) {
+        ({ data: dealership } = await supa
+          .from('dealerships').select('*').eq('id', dealerId).maybeSingle());
+      }
+    }
+
     if (dealership) applyDealership(dealership);
 
     document.documentElement.style.visibility = 'visible';
+
+    // Pull live data into the widgets. The static demo content stays in
+    // place if this fails (e.g. Phase 2 migration not yet applied).
+    if (dealership && typeof window.loadLiveData === 'function') {
+      window.loadLiveData(dealership.id)
+        .catch(err => console.warn('Live data unavailable:', err.message));
+    }
   })();
 
   // If user signs out in another tab, kick them back to login
@@ -607,7 +625,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   <aside class="sidebar">
     <div class="sb-logo">
       <div class="sb-logo-mark" id="sb-logo-mark">AC</div>
-      <div class="sb-logo-text">Auto<span>Client</span></div>
+      <div>
+        <div class="sb-logo-text">Auto<span>Client</span></div>
+        <div style="font-size:9px;color:rgba(255,255,255,.35);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase;">Powered by Sri Saamba</div>
+      </div>
     </div>
 
     <div class="sb-dealer">
@@ -634,7 +655,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       <div class="sb-item" onclick="goTo('todo',this)">
         <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         Action Center
-        <span class="sb-badge orange">8</span>
+        <span class="sb-badge orange" id="badge-actions">8</span>
       </div>
 
       <div class="sb-section">Business</div>
@@ -645,7 +666,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       <div class="sb-item" onclick="goTo('missed',this)">
         <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 5a7 7 0 00-7-3C4 2 2 4.7 2 8s2 6 5 7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         Missed Calls
-        <span class="sb-badge red">18</span>
+        <span class="sb-badge red" id="badge-missed">18</span>
       </div>
       <div class="sb-item" onclick="goTo('performance',this)">
         <svg class="icon" viewBox="0 0 16 16" fill="none"><path d="M2 14V8M6 14V5M10 14V2M14 14V9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
@@ -694,11 +715,11 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       <div class="page-content">
 
         <!-- Hot lead banner -->
-        <div class="hot-banner" onclick="goTo('inbox',null)">
+        <div class="hot-banner" id="hot-banner" onclick="goTo('todo',null)">
           <div class="hot-pulse"></div>
           <div>
-            <div class="hot-text">🔥 Hot lead waiting — Billy Angry needs urgent callback</div>
-            <div class="hot-sub">3 missed calls · F-150 interest · Threatening to go elsewhere</div>
+            <div class="hot-text" id="hot-text">🔥 Hot lead waiting — Billy Angry needs urgent callback</div>
+            <div class="hot-sub" id="hot-sub">3 missed calls · F-150 interest · Threatening to go elsewhere</div>
           </div>
           <div class="hot-cta">Respond now →</div>
         </div>
@@ -706,28 +727,28 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         <!-- Daily Dealer Digest -->
         <div class="digest-card">
           <div class="digest-header">
-            <div class="digest-title">Today's Digest — Mon 18 May</div>
-            <div class="digest-date">Updated 8:01 AM</div>
+            <div class="digest-title" id="digest-title">Today's Digest</div>
+            <div class="digest-date" id="digest-date"></div>
           </div>
           <div class="digest-grid">
             <div class="digest-stat">
-              <div class="ds-num ds-orange">12</div>
+              <div class="ds-num ds-orange" id="digest-calls">12</div>
               <div class="ds-label">calls answered</div>
             </div>
             <div class="digest-stat">
-              <div class="ds-num ds-green">4</div>
+              <div class="ds-num ds-green" id="digest-appts">4</div>
               <div class="ds-label">appointments booked</div>
             </div>
             <div class="digest-stat">
-              <div class="ds-num ds-amber">2</div>
+              <div class="ds-num ds-amber" id="digest-callbacks">2</div>
               <div class="ds-label">urgent callbacks</div>
             </div>
             <div class="digest-stat">
-              <div class="ds-num ds-red">1</div>
-              <div class="ds-label">angry customer</div>
+              <div class="ds-num ds-red" id="digest-angry">1</div>
+              <div class="ds-label">escalations</div>
             </div>
             <div class="digest-stat">
-              <div class="ds-num ds-white">$2,160</div>
+              <div class="ds-num ds-white" id="digest-revenue">$2,160</div>
               <div class="ds-label">revenue protected</div>
             </div>
           </div>
@@ -738,7 +759,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
           <div class="kpi k-orange">
             <div class="kpi-icon">📞</div>
             <div class="kpi-label">Missed calls recovered</div>
-            <div class="kpi-value" data-count="18">0</div>
+            <div class="kpi-value" id="kpi-missed" data-count="18">0</div>
             <div class="kpi-delta"><span class="up">↑ 6</span> vs last week</div>
           </div>
           <div class="kpi k-green">
@@ -750,13 +771,13 @@ textarea.form-input { resize: vertical; min-height: 80px; }
           <div class="kpi k-blue">
             <div class="kpi-icon">🌙</div>
             <div class="kpi-label">After-hours leads</div>
-            <div class="kpi-value" data-count="11">0</div>
+            <div class="kpi-value" id="kpi-afterhours" data-count="11">0</div>
             <div class="kpi-delta"><span class="up">+4</span> captured last night</div>
           </div>
           <div class="kpi k-red">
             <div class="kpi-icon">💰</div>
             <div class="kpi-label">Revenue recovered</div>
-            <div class="kpi-value" data-count="25380" data-prefix="$">0</div>
+            <div class="kpi-value" id="kpi-revenue" data-count="25380" data-prefix="$">0</div>
             <div class="kpi-delta">Est. this month · 47 leads</div>
           </div>
         </div>
@@ -774,7 +795,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Customer</th><th>Vehicle</th><th>Time</th><th>Status</th></tr></thead>
-                <tbody>
+                <tbody id="todays-bookings-body">
                   <tr>
                     <td><div class="td-name">James Wilson</div><div class="td-vehicle">(555) 100-2049</div></td>
                     <td>2020 Toyota Camry · $17,500</td>
@@ -1005,12 +1026,13 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       <div class="page-content">
         <div class="panel" style="margin-bottom:14px">
           <div class="panel-head">
-            <div class="panel-title">Action Center — Mon 18 May · 8 actions waiting</div>
+            <div class="panel-title" id="ac-title">Action Center</div>
             <div style="font-size:11px;color:var(--ink3);font-family:var(--mono)">Prepared overnight · ready at 8am</div>
           </div>
           <div class="todo-board">
             <div class="todo-col">
-              <div class="tc-head">Call back <span class="tc-count orange">3</span></div>
+              <div class="tc-head">Call back <span class="tc-count orange" id="ac-callback-count">3</span></div>
+              <div id="ac-callback-items">
               <div class="todo-item">
                 <div class="ti-name">Billy Angry 🔥</div>
                 <div class="ti-desc">3 missed calls. Pricing on F-150. Threatening to go elsewhere — call NOW.</div>
@@ -1026,9 +1048,11 @@ textarea.form-input { resize: vertical; min-height: 80px; }
                 <div class="ti-desc">BMW 3 Series interest. Wants to speak to a person, not the assistant.</div>
                 <span class="escalation-tag">Requested human</span>
               </div>
+              </div>
             </div>
             <div class="todo-col">
-              <div class="tc-head">Text back <span class="tc-count">2</span></div>
+              <div class="tc-head">Text back <span class="tc-count" id="ac-textback-count">2</span></div>
+              <div id="ac-textback-items">
               <div class="todo-item">
                 <div class="ti-name">Sarah Chen</div>
                 <div class="ti-desc">Asked if 2021 CR-V has sunroof. Assistant couldn't confirm from listing.</div>
@@ -1039,9 +1063,11 @@ textarea.form-input { resize: vertical; min-height: 80px; }
                 <div class="ti-desc">Re-engaged after price drop on Accord. Replied "maybe Saturday?"</div>
                 <span class="tag t-amber">Re-engage</span>
               </div>
+              </div>
             </div>
             <div class="todo-col">
-              <div class="tc-head">Test drives today <span class="tc-count">4</span></div>
+              <div class="tc-head">Confirmations <span class="tc-count" id="ac-confirm-count">4</span></div>
+              <div id="ac-confirm-items">
               <div class="todo-item">
                 <div class="ti-name">James Wilson</div>
                 <div class="ti-desc">2020 Camry · 10:00 AM</div>
@@ -1061,6 +1087,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
                 <div class="ti-name">Sarah Chen</div>
                 <div class="ti-desc">2022 Tucson · 5:00 PM · Waiting on confirmation</div>
                 <span class="tag t-amber">Pending</span>
+              </div>
               </div>
             </div>
             <div class="todo-col">
@@ -1100,7 +1127,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
           <div class="table-wrap">
             <table>
               <thead><tr><th>Ref</th><th>Customer</th><th>Vehicle</th><th>Date & Time</th><th>Status</th><th>Source</th></tr></thead>
-              <tbody>
+              <tbody id="all-bookings-body">
                 <tr><td class="td-ref">AC-051</td><td><div class="td-name">James Wilson</div><div class="td-vehicle">(555) 100-2049</div></td><td>2020 Toyota Camry · $17,500</td><td class="td-time">Tue 19 May · 10:00 AM</td><td><span class="badge-pill t-green">● Confirmed</span><br><span class="auto-booked-stamp" style="margin-top:4px;display:inline-flex">✓ Auto-booked 11:48 PM</span></td><td><span class="tag t-blue">Cars.com</span></td></tr>
                 <tr><td class="td-ref">AC-050</td><td><div class="td-name">Priya Patel</div><div class="td-vehicle">(555) 234-7710</div></td><td>2021 Honda CR-V · $24,900</td><td class="td-time">Tue 19 May · 1:00 PM</td><td><span class="badge-pill t-green">● Confirmed</span></td><td><span class="tag t-orange">AutoTrader</span></td></tr>
                 <tr><td class="td-ref">AC-049</td><td><div class="td-name">Tom Reeves</div><div class="td-vehicle">(555) 887-3312</div></td><td>2019 Ford Ranger · $21,500</td><td class="td-time">Mon 18 May · 3:30 PM</td><td><span class="badge-pill t-amber">◌ Pending</span></td><td><span class="tag t-green">Direct call</span></td></tr>
@@ -1535,27 +1562,193 @@ function selectConvo(idx, el) {
 // Initialize with first convo
 selectConvo(0, null);
 
-// ── LIVE ACTIVITY FEED ─────────────────────────────────────
-const liveEvents = [
-  { color: 'var(--green)', text: '<strong>Tom Reeves</strong> confirmed test drive for 3:30pm — Ranger <span class="auto-booked-stamp">✓ Auto-booked</span>', ago: 'just now' },
-  { color: 'var(--blue)', text: 'Instant SMS confirmation sent to <strong>Priya Patel</strong> for 1pm test drive', ago: 'just now' },
-  { color: 'var(--orange)', text: '<strong>Missed call recovered</strong> — Anita Sharma, after-hours, Tucson inquiry', ago: '4 min ago' },
-  { color: 'var(--amber)', text: '<strong>Auto follow-up:</strong> 3 nurture SMS sent this morning to warm leads', ago: '8 min ago' },
-];
-let evIdx = 0;
-setInterval(() => {
+// ── LIVE DATA (Supabase) ───────────────────────────────────
+// Fills the widgets with the signed-in dealership's real rows. If the
+// Phase 2 tables are missing or a query fails, the static demo content
+// in the markup is simply left in place.
+
+const escHtml = s => String(s == null ? '' : s)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const custName = c => c ? escHtml(((c.first_name || '') + ' ' + (c.last_name || '')).trim() || 'Unknown') : 'Unknown';
+const fmtTime = ts => new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const fmtDay  = ts => new Date(ts).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' });
+const agoText = ts => {
+  const m = Math.max(1, Math.round((Date.now() - new Date(ts).getTime()) / 60000));
+  if (m < 60) return m + ' min ago';
+  const h = Math.round(m / 60);
+  if (h < 24) return h + ' hr ago';
+  return Math.round(h / 24) + ' d ago';
+};
+
+const APPT_PILL = {
+  confirmed: '<span class="badge-pill t-green">● Confirmed</span>',
+  pending:   '<span class="badge-pill t-amber">◌ Pending</span>',
+  requested: '<span class="badge-pill t-blue">↩ Requested</span>',
+  completed: '<span class="badge-pill t-green">✓ Completed</span>',
+  cancelled: '<span class="badge-pill t-red">✕ Cancelled</span>',
+};
+const TASK_TAG = {
+  escalation:   '<span class="tag t-red">🚨 Urgent</span>',
+  hot_lead:     '<span class="tag t-orange">Hot lead</span>',
+  follow_up:    '<span class="tag t-amber">Follow-up</span>',
+  confirmation: '<span class="tag t-green">Confirm</span>',
+};
+
+function setKpi(id, val, prefix) {
+  const el = document.getElementById(id);
+  if (!el || val == null) return;
+  el.dataset.count = Math.round(Number(val));
+  if (prefix) el.dataset.prefix = prefix;
+}
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+window.loadLiveData = async function (dealerId) {
+  // Seed demo rows once for dealerships that pre-date Phase 2
+  let { data: metrics, error: mErr } = await supa.from('dealership_metrics').select('*').maybeSingle();
+  if (mErr) throw mErr;
+  if (!metrics) {
+    await supa.rpc('seed_demo_data');
+    ({ data: metrics } = await supa.from('dealership_metrics').select('*').maybeSingle());
+  }
+
+  const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(dayStart.getTime() + 86400000);
+  const weekAgo = new Date(Date.now() - 7 * 86400000);
+
+  const [callsToday, afterHours, recovered, todays, allAppts, openTasks, recentCalls] = await Promise.all([
+    supa.from('call_logs').select('id', { count: 'exact', head: true })
+      .eq('call_status', 'answered').gte('created_at', dayStart.toISOString()),
+    supa.from('call_logs').select('id', { count: 'exact', head: true })
+      .eq('call_type', 'after_hours').gte('created_at', weekAgo.toISOString()),
+    supa.from('call_logs').select('id', { count: 'exact', head: true })
+      .eq('call_status', 'recovered').gte('created_at', weekAgo.toISOString()),
+    supa.from('appointments').select('*, customers(first_name,last_name,phone,lead_source)')
+      .gte('scheduled_at', dayStart.toISOString()).lt('scheduled_at', dayEnd.toISOString())
+      .order('scheduled_at'),
+    supa.from('appointments').select('*, customers(first_name,last_name,phone,lead_source)')
+      .order('scheduled_at', { ascending: false }).limit(25),
+    supa.from('tasks').select('*, customers(first_name,last_name,phone)')
+      .eq('status', 'open').order('created_at', { ascending: false }),
+    supa.from('call_logs').select('*').order('created_at', { ascending: false }).limit(6),
+  ]);
+
+  const tasks = openTasks.data || [];
+
+  // Daily digest
+  setText('digest-title', "Today's Digest — " + fmtDay(Date.now()));
+  setText('digest-date', 'Updated ' + fmtTime(Date.now()));
+  setText('digest-calls', callsToday.count ?? 0);
+  setText('digest-appts', (todays.data || []).length);
+  setText('digest-callbacks', tasks.filter(t => t.priority === 'urgent' || t.priority === 'high').length);
+  setText('digest-angry', tasks.filter(t => t.task_type === 'escalation').length);
+  if (metrics) setText('digest-revenue', '$' + Number(metrics.revenue_protected).toLocaleString());
+
+  // KPI cards
+  if (metrics) {
+    setKpi('kpi-missed', metrics.missed_calls_recovered);
+    setKpi('kpi-revenue', metrics.revenue_protected, '$');
+  }
+  setKpi('kpi-afterhours', afterHours.count ?? 0);
+  if (typeof animateCounters === 'function') animateCounters();
+
+  // Sidebar badges
+  setText('badge-actions', tasks.length);
+  setText('badge-missed', recovered.count ?? 0);
+
+  // Hot lead banner
+  const hot = tasks.find(t => t.priority === 'urgent');
+  const banner = document.getElementById('hot-banner');
+  if (banner) {
+    if (hot) {
+      setText('hot-text', '🔥 ' + hot.title);
+      setText('hot-sub', hot.description || '');
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // Today's test drives + all bookings
+  const apptRow = (a, withRef) => {
+    const c = a.customers;
+    const when = withRef
+      ? fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at)
+      : fmtTime(a.scheduled_at);
+    return '<tr>'
+      + (withRef ? '<td class="td-ref">AC-' + escHtml(String(a.id).slice(0, 4).toUpperCase()) + '</td>' : '')
+      + '<td><div class="td-name">' + custName(c) + '</div><div class="td-vehicle">' + escHtml((c && c.phone) || '') + '</div></td>'
+      + '<td>' + escHtml(a.vehicle || a.appointment_type.replace(/_/g, ' ')) + '</td>'
+      + '<td class="td-time">' + when + '</td>'
+      + '<td>' + (APPT_PILL[a.status] || escHtml(a.status)) + '</td>'
+      + (withRef ? '<td><span class="tag t-blue">' + escHtml((c && c.lead_source) || '—') + '</span></td>' : '')
+      + '</tr>';
+  };
+  if (todays.data) {
+    document.getElementById('todays-bookings-body').innerHTML =
+      todays.data.length
+        ? todays.data.map(a => apptRow(a, false)).join('')
+        : '<tr><td colspan="4" class="empty">No test drives scheduled today</td></tr>';
+  }
+  if (allAppts.data) {
+    document.getElementById('all-bookings-body').innerHTML =
+      allAppts.data.length
+        ? allAppts.data.map(a => apptRow(a, true)).join('')
+        : '<tr><td colspan="6" class="empty">No bookings yet</td></tr>';
+  }
+
+  // Action Center
+  setText('ac-title', 'Action Center — ' + fmtDay(Date.now()) + ' · ' + tasks.length + ' actions waiting');
+  if (typeof pages !== 'undefined') pages.todo.sub = tasks.length + ' actions waiting';
+  const taskCard = t =>
+    '<div class="todo-item">'
+    + '<div class="ti-name">' + escHtml(t.title) + '</div>'
+    + '<div class="ti-desc">' + escHtml(t.description || '') + '</div>'
+    + (TASK_TAG[t.task_type] || '')
+    + '</div>';
+  const renderCol = (itemsId, countId, list) => {
+    const wrap = document.getElementById(itemsId);
+    if (!wrap) return;
+    wrap.innerHTML = list.length ? list.map(taskCard).join('') : '<div class="empty">Nothing waiting</div>';
+    setText(countId, list.length);
+  };
+  renderCol('ac-callback-items', 'ac-callback-count', tasks.filter(t => t.task_type === 'hot_lead' || t.task_type === 'escalation'));
+  renderCol('ac-textback-items', 'ac-textback-count', tasks.filter(t => t.task_type === 'follow_up'));
+  renderCol('ac-confirm-items', 'ac-confirm-count', tasks.filter(t => t.task_type === 'confirmation'));
+
+  // Live activity feed: merge recent calls, bookings, and tasks
+  const events = [];
+  (recentCalls.data || []).forEach(c => events.push({
+    ts: c.created_at,
+    color: c.call_status === 'recovered' ? 'var(--orange)'
+         : (c.call_status === 'missed' || c.call_status === 'escalated') ? 'var(--red)'
+         : 'var(--blue)',
+    html: '<strong>' + escHtml(c.customer_name || 'Unknown caller') + '</strong> — '
+      + (c.call_type === 'after_hours' ? 'after-hours call ' : 'call ') + escHtml(c.call_status),
+  }));
+  (allAppts.data || []).slice(0, 5).forEach(a => events.push({
+    ts: a.created_at,
+    color: 'var(--green)',
+    html: '<strong>' + custName(a.customers) + '</strong> booked ' + escHtml(a.appointment_type.replace(/_/g, ' '))
+      + ' — ' + fmtTime(a.scheduled_at) + (a.vehicle ? ' · ' + escHtml(a.vehicle) : ''),
+  }));
+  tasks.slice(0, 4).forEach(t => events.push({
+    ts: t.created_at,
+    color: t.task_type === 'escalation' ? 'var(--red)' : 'var(--amber)',
+    html: '<strong>' + escHtml(t.title) + '</strong>'
+      + (t.task_type === 'escalation' ? ' <span class="escalation-tag">🚨 Needs callback</span>' : ''),
+  }));
+  events.sort((a, b) => new Date(b.ts) - new Date(a.ts));
   const feed = document.getElementById('activity-feed');
-  if (!feed) return;
-  const e = liveEvents[evIdx % liveEvents.length];
-  const el = document.createElement('div');
-  el.className = 'activity-item';
-  el.style.cssText = 'opacity:0;transform:translateY(-6px);transition:all .3s ease;';
-  el.innerHTML = `<div class="ai-dot" style="background:${e.color}"></div><div><div class="ai-text">${e.text}</div><div class="ai-ago">${e.ago}</div></div>`;
-  feed.insertBefore(el, feed.firstChild);
-  requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'none'; });
-  if (feed.children.length > 7) feed.removeChild(feed.lastChild);
-  evIdx++;
-}, 9000);
+  if (feed && events.length) {
+    feed.innerHTML = events.slice(0, 7).map(e =>
+      '<div class="activity-item"><div class="ai-dot" style="background:' + e.color + '"></div>'
+      + '<div><div class="ai-text">' + e.html + '</div><div class="ai-ago">' + agoText(e.ts) + '</div></div></div>'
+    ).join('');
+  }
+};
 
 // ── ASSISTANT CHAT WIDGET ──────────────────────────────────
 const ANTHROPIC_KEY = '';
