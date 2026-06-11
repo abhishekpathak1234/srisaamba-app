@@ -1,100 +1,241 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Sri Saamba AI - Login</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .login-box {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            width: 350px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #ff6b35;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #e65c28;
-        }
-
-        #error {
-            color: red;
-            text-align: center;
-            margin-top: 15px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sri Saamba AI — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:wght@400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --surface2: #F0EFE9;
+    --ink: #1A1916;
+    --ink2: #6B6860;
+    --ink3: #A8A69E;
+    --border: rgba(0,0,0,.07);
+    --border2: rgba(0,0,0,.12);
+    --orange: #FF5C1A;
+    --green: #1A7A50;
+    --red: #C02B2B;
+    --radius: 10px;
+    --radius-lg: 16px;
+    --font: 'Cabinet Grotesk', sans-serif;
+    --mono: 'Instrument Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px 32px;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 24px rgba(0,0,0,.06);
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    justify-content: center;
+    margin-bottom: 6px;
+  }
+  .logo-mark {
+    width: 36px; height: 36px;
+    background: var(--orange);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; color: white;
+  }
+  .logo-text { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
+  .logo-text span { color: var(--orange); }
+  .subtitle {
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink3);
+    font-family: var(--mono);
+    margin-bottom: 26px;
+  }
+  label {
+    display: block;
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink3); font-family: var(--mono);
+    margin-bottom: 5px;
+  }
+  input {
+    width: 100%;
+    padding: 11px 13px;
+    margin-bottom: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    color: var(--ink);
+    outline: none;
+    transition: border-color .15s, background .15s;
+  }
+  input:focus { border-color: var(--orange); background: var(--surface); }
+  input::placeholder { color: var(--ink3); }
+  button.primary {
+    width: 100%;
+    padding: 12px;
+    background: var(--orange);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px; font-weight: 700;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  button.primary:hover { background: #e04800; }
+  button.primary:disabled { opacity: .6; cursor: not-allowed; }
+  #message {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 20px;
+  }
+  #message.error { color: var(--red); }
+  #message.success { color: var(--green); }
+  .switch-mode {
+    text-align: center;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--ink2);
+  }
+  .switch-mode a {
+    color: var(--orange);
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .switch-mode a:hover { text-decoration: underline; }
+</style>
 </head>
-
 <body>
 
 <div class="login-box">
-    <h2>Sri Saamba AI</h2>
+  <div class="logo">
+    <div class="logo-mark">SS</div>
+    <div class="logo-text">Sri<span>Saamba</span> AI</div>
+  </div>
+  <p class="subtitle" id="subtitle">Sign in to your dashboard</p>
 
-    <input type="email" id="email" placeholder="Email">
+  <label for="email">Email</label>
+  <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
 
-    <input type="password" id="password" placeholder="Password">
+  <label for="password">Password</label>
+  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
 
-    <button onclick="login()">Login</button>
+  <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
 
-    <p id="error"></p>
+  <p id="message"></p>
+
+  <div class="switch-mode" id="switch-mode">
+    Don't have an account? <a onclick="toggleMode()">Create one</a>
+  </div>
 </div>
 
 <script>
-const supabase = window.supabase.createClient(
+  const supabase = window.supabase.createClient(
     'https://owrphdyzqzfigovpysaj.supabase.co',
     'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8'
-);
+  );
 
-async function login() {
+  let mode = 'login'; // 'login' or 'signup'
 
-    const email = document.getElementById('email').value;
+  // If already logged in, go straight to dashboard
+  (async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) window.location.href = 'dashboard.html';
+  })();
+
+  function toggleMode() {
+    mode = mode === 'login' ? 'signup' : 'login';
+    document.getElementById('subtitle').innerText =
+      mode === 'login' ? 'Sign in to your dashboard' : 'Create your account';
+    document.getElementById('submit-btn').innerText =
+      mode === 'login' ? 'Sign in' : 'Create account';
+    document.getElementById('switch-mode').innerHTML =
+      mode === 'login'
+        ? `Don't have an account? <a onclick="toggleMode()">Create one</a>`
+        : `Already have an account? <a onclick="toggleMode()">Sign in</a>`;
+    setMessage('', '');
+  }
+
+  function setMessage(text, type) {
+    const el = document.getElementById('message');
+    el.innerText = text;
+    el.className = type;
+  }
+
+  async function handleSubmit() {
+    const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const btn = document.getElementById('submit-btn');
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-    });
-
-    if (error) {
-        document.getElementById('error').innerText =
-            'Invalid email or password';
-    } else {
-        window.location.href = 'dashboard.html';
+    if (!email || !password) {
+      setMessage('Enter your email and password.', 'error');
+      return;
     }
-}
+    if (mode === 'signup' && password.length < 6) {
+      setMessage('Password must be at least 6 characters.', 'error');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = mode === 'login' ? 'Signing in…' : 'Creating account…';
+    setMessage('', '');
+
+    if (mode === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setMessage('Invalid email or password.', 'error');
+        btn.disabled = false;
+        btn.innerText = 'Sign in';
+      } else {
+        window.location.href = 'dashboard.html';
+      }
+    } else {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      btn.disabled = false;
+      btn.innerText = 'Create account';
+      if (error) {
+        setMessage(error.message, 'error');
+      } else if (data.session) {
+        // Email confirmation disabled — logged in immediately
+        window.location.href = 'dashboard.html';
+      } else {
+        // Email confirmation enabled — user must verify first
+        setMessage('Account created! Check your email to confirm, then sign in.', 'success');
+        toggleMode();
+      }
+    }
+  }
+
+  // Submit on Enter key
+  document.getElementById('password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
+  document.getElementById('email').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
 </script>
 
 </body>
