@@ -153,7 +153,7 @@
 </div>
 
 <script>
-  const supabase = window.supabase.createClient(
+  const supaClient = window.supabase.createClient(
     'https://owrphdyzqzfigovpysaj.supabase.co',
     'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8'
   );
@@ -162,7 +162,7 @@
 
   // If already logged in, go straight to dashboard
   (async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supaClient.auth.getSession();
     if (session) window.location.href = 'dashboard.html';
   })();
 
@@ -204,7 +204,7 @@
     setMessage('', '');
 
     if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supaClient.auth.signInWithPassword({ email, password });
       if (error) {
         setMessage('Invalid email or password.', 'error');
         btn.disabled = false;
@@ -213,7 +213,7 @@
         window.location.href = 'dashboard.html';
       }
     } else {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supaClient.auth.signUp({ email, password });
       btn.disabled = false;
       btn.innerText = 'Create account';
       if (error) {
