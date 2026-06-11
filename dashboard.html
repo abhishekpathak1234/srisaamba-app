@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 
 <style>
 /* ── TOKENS ───────────────────────────────────────────────── */
@@ -517,31 +518,88 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 
 <!-- ── SUPABASE AUTH GUARD ─────────────────────────────────── -->
 <script>
-  const sb = window.supabase.createClient(
-    'https://owrphdyzqzfigovpysaj.supabase.co',
-    'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8'
-  );
-
-  // Hide page until we know the user is logged in (prevents flash)
+  // Hide page until auth AND tenancy are resolved (prevents flash)
   document.documentElement.style.visibility = 'hidden';
 
   (async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) {
-      window.location.replace('login.html');
-    } else {
-      document.documentElement.style.visibility = 'visible';
-    }
+    const session = await getSession();
+    if (!session) { window.location.replace('login.html'); return; }
+
+    // Authenticated but not yet part of a dealership → onboarding
+    const membership = await getMembership();
+    if (!membership) { window.location.replace('onboarding.html'); return; }
+
+    // RLS already scopes this to the user's own dealership
+    const { data: dealership } = await supa
+      .from('dealerships')
+      .select('*')
+      .eq('id', membership.dealership_id)
+      .single();
+    if (dealership) applyDealership(dealership);
+
+    document.documentElement.style.visibility = 'visible';
   })();
 
   // If user signs out in another tab, kick them back to login
-  sb.auth.onAuthStateChange((event) => {
+  supa.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') window.location.replace('login.html');
   });
 
   async function logout() {
-    await sb.auth.signOut();
+    await supa.auth.signOut();
     window.location.replace('login.html');
+  }
+
+  // Render the signed-in user's dealership into the existing layout
+  function applyDealership(d) {
+    window.currentDealership = d;
+
+    // Sidebar: name, optional logo, optional phone/website line
+    document.getElementById('sb-dealer-name').textContent = d.name;
+
+    if (d.logo_url) {
+      const mark = document.getElementById('sb-logo-mark');
+      const img = document.createElement('img');
+      img.src = d.logo_url;
+      img.alt = '';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+      mark.textContent = '';
+      mark.appendChild(img);
+    }
+
+    const contact = [d.phone, d.website].filter(Boolean).join(' · ');
+    const contactEl = document.getElementById('sb-dealer-contact');
+    if (contact) {
+      contactEl.textContent = contact;
+      contactEl.style.display = 'flex';
+    }
+
+    // Topbar subtitle: real date + dealership name
+    const today = new Date().toLocaleDateString('en-US',
+      { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const month = new Date().toLocaleDateString('en-US',
+      { month: 'long', year: 'numeric' });
+    if (typeof pages !== 'undefined') {
+      pages.dashboard.sub = today + ' · ' + d.name;
+      pages.performance.sub = month + ' · ' + d.name;
+    }
+    document.getElementById('page-sub').textContent = today + ' · ' + d.name;
+
+    // Settings → Dealership Details prefill
+    const fill = (id, v) => {
+      const el = document.getElementById(id);
+      if (el && v) el.value = v;
+    };
+    fill('set-dealer-name', d.name);
+    fill('set-dealer-address', d.address);
+    fill('set-dealer-hours', d.business_hours && d.business_hours.display);
+
+    // Assistant widget greeting
+    const greet = document.getElementById('acw-greeting');
+    if (greet) {
+      greet.textContent = 'Hi! 👋 I\'m the assistant for ' + d.name +
+        '. Ask me anything about your leads, bookings, or how to improve your conversions.';
+    }
   }
 </script>
 
@@ -551,15 +609,16 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   <!-- ── SIDEBAR ─────────────────────────────────────────── -->
   <aside class="sidebar">
     <div class="sb-logo">
-      <div class="sb-logo-mark">AC</div>
+      <div class="sb-logo-mark" id="sb-logo-mark">AC</div>
       <div class="sb-logo-text">Auto<span>Client</span></div>
     </div>
 
     <div class="sb-dealer">
-      <div class="sb-dealer-name">Mike's Motors — Houston</div>
+      <div class="sb-dealer-name" id="sb-dealer-name">—</div>
       <div class="sb-dealer-status">
         <span class="live-dot"></span> Assistant live · 24/7
       </div>
+      <div class="sb-dealer-status" id="sb-dealer-contact" style="display:none"></div>
     </div>
 
     <nav class="sb-nav">
@@ -616,7 +675,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <div class="topbar-left">
       <div>
         <div class="topbar-title" id="page-title">Dashboard</div>
-        <div class="topbar-sub" id="page-sub">Mon 18 May 2026 · Mike's Motors</div>
+        <div class="topbar-sub" id="page-sub"></div>
       </div>
       <div class="topbar-divider"></div>
       <div class="ai-status">
@@ -1228,10 +1287,10 @@ textarea.form-input { resize: vertical; min-height: 80px; }
             <div class="panel" style="margin-bottom:14px">
               <div class="panel-head"><div class="panel-title">Dealership Details</div></div>
               <div style="padding:18px">
-                <div class="form-group"><label class="form-label">Dealership name</label><input class="form-input" value="Mike's Motors"></div>
+                <div class="form-group"><label class="form-label">Dealership name</label><input class="form-input" id="set-dealer-name" value=""></div>
                 <div class="form-group"><label class="form-label">Assistant name</label><input class="form-input" value="Alex"></div>
-                <div class="form-group"><label class="form-label">Address</label><input class="form-input" value="4521 Highway 6, Houston TX 77056"></div>
-                <div class="form-group"><label class="form-label">Opening hours</label><input class="form-input" value="Mon–Sat 9am–7pm, Sun 11am–5pm"></div>
+                <div class="form-group"><label class="form-label">Address</label><input class="form-input" id="set-dealer-address" value=""></div>
+                <div class="form-group"><label class="form-label">Opening hours</label><input class="form-input" id="set-dealer-hours" value=""></div>
                 <div class="form-group"><label class="form-label">Your mobile (for alerts)</label><input class="form-input" value="+1 713 555 0100"></div>
                 <div class="form-group"><label class="form-label">Vehicle types on lot</label><input class="form-input" value="Sedans, SUVs, trucks, used EVs, hybrids"></div>
                 <div class="form-group"><label class="form-label">Price range</label><input class="form-input" value="$8,000 – $35,000"></div>
@@ -1291,7 +1350,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
       </div>
     </div>
     <div class="acw-messages" id="acw-msgs">
-      <div class="acw-msg bot">Hi Mike! 👋 I'm your dealership assistant. Ask me anything about your leads, bookings, or how to improve your conversions.</div>
+      <div class="acw-msg bot" id="acw-greeting">Hi! 👋 I'm your dealership assistant. Ask me anything about your leads, bookings, or how to improve your conversions.</div>
       <div class="acw-msg bot">Try: "How many calls did I miss this week?" or "What's my revenue this month?"</div>
     </div>
     <div class="acw-input-wrap">
@@ -1331,13 +1390,13 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 <script>
 // ── PAGE DATA ──────────────────────────────────────────────
 const pages = {
-  dashboard:   { title: 'Dashboard', sub: 'Mon 18 May 2026 · Mike\'s Motors' },
+  dashboard:   { title: 'Dashboard', sub: '' }, // sub filled from the dealership row
   inbox:       { title: 'Smart Inbox', sub: '34 conversations · 5 need attention' },
   todo:        { title: 'Action Center', sub: '8 actions waiting — prepared overnight' },
   bookings:    { title: 'Test Drive Bookings', sub: '47 this month · 4 today' },
   missed:      { title: 'Missed Calls Recovered', sub: '18 recovered this week · $9,720 protected' },
-  performance: { title: 'Performance', sub: 'May 2026 · Mike\'s Motors' },
-  settings:    { title: 'Assistant Settings', sub: 'Customize Alex for your dealership' },
+  performance: { title: 'Performance', sub: '' }, // sub filled from the dealership row
+  settings:    { title: 'Assistant Settings', sub: 'Customize your assistant' },
 };
 
 // ── NAVIGATION ─────────────────────────────────────────────
@@ -1548,7 +1607,7 @@ async function sendAIMsg() {
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 180,
-          system: `You are a smart dealership assistant for Mike's Motors in Houston. The dealer has: 134 calls answered this month, 47 test drives booked, 18 missed calls recovered, 22 second average response time, 11 after-hours leads this week, $25,380 revenue protected. Be brief, helpful, and specific. Max 2 sentences.`,
+          system: `You are a smart dealership assistant for ${(window.currentDealership && window.currentDealership.name) || 'this dealership'}. The dealer has: 134 calls answered this month, 47 test drives booked, 18 missed calls recovered, 22 second average response time, 11 after-hours leads this week, $25,380 revenue protected. Be brief, helpful, and specific. Max 2 sentences.`,
           messages: [{ role: 'user', content: text }]
         })
       });

@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:wght@400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
 <style>
   :root {
     --bg: #F7F6F2;
@@ -102,6 +103,34 @@
   }
   button.primary:hover { background: #e04800; }
   button.primary:disabled { opacity: .6; cursor: not-allowed; }
+  .divider {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--ink3);
+    font-family: var(--mono);
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  button.google {
+    width: 100%;
+    margin-top: 14px;
+    padding: 11px;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    font-size: 14px; font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    transition: background .15s, border-color .15s;
+  }
+  button.google:hover { background: var(--surface2); }
   #message {
     text-align: center;
     margin-top: 14px;
@@ -145,6 +174,13 @@
 
   <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
 
+  <div class="divider">or</div>
+
+  <button class="google" onclick="loginWithGoogle()">
+    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+    Continue with Google
+  </button>
+
   <p id="message"></p>
 
   <div class="switch-mode" id="switch-mode">
@@ -153,17 +189,14 @@
 </div>
 
 <script>
-  const supaClient = window.supabase.createClient(
-    'https://owrphdyzqzfigovpysaj.supabase.co',
-    'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8'
-  );
-
   let mode = 'login'; // 'login' or 'signup'
 
-  // If already logged in, go straight to dashboard
+  // Keep any ?invite=TOKEN around (survives the Google OAuth round-trip)
+  rememberInviteToken();
+
+  // Already signed in? Route by membership: dashboard / join via invite / onboarding
   (async () => {
-    const { data: { session } } = await supaClient.auth.getSession();
-    if (session) window.location.href = 'dashboard.html';
+    if (await getSession()) routeAfterAuth();
   })();
 
   function toggleMode() {
@@ -204,29 +237,40 @@
     setMessage('', '');
 
     if (mode === 'login') {
-      const { error } = await supaClient.auth.signInWithPassword({ email, password });
+      const { error } = await supa.auth.signInWithPassword({ email, password });
       if (error) {
         setMessage('Invalid email or password.', 'error');
         btn.disabled = false;
         btn.innerText = 'Sign in';
       } else {
-        window.location.href = 'dashboard.html';
+        await routeAfterAuth();
       }
     } else {
-      const { data, error } = await supaClient.auth.signUp({ email, password });
+      const { data, error } = await supa.auth.signUp({ email, password });
       btn.disabled = false;
       btn.innerText = 'Create account';
       if (error) {
         setMessage(error.message, 'error');
       } else if (data.session) {
-        // Email confirmation disabled — logged in immediately
-        window.location.href = 'dashboard.html';
+        // Email confirmation disabled — signed in immediately
+        await routeAfterAuth();
       } else {
         // Email confirmation enabled — user must verify first
         setMessage('Account created! Check your email to confirm, then sign in.', 'success');
         toggleMode();
       }
     }
+  }
+
+  async function loginWithGoogle() {
+    rememberInviteToken();
+    setMessage('', '');
+    // Comes back to this page; the session check above then routes by membership
+    const { error } = await supa.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if (error) setMessage(error.message, 'error');
   }
 
   // Submit on Enter key
