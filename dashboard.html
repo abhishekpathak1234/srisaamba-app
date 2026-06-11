@@ -6,6 +6,7 @@
 <title>AutoClient AI — Dealer Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 /* ── TOKENS ───────────────────────────────────────────────── */
@@ -514,6 +515,37 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 </head>
 <body>
 
+<!-- ── SUPABASE AUTH GUARD ─────────────────────────────────── -->
+<script>
+  const sb = window.supabase.createClient(
+    'https://owrphdyzqzfigovpysaj.supabase.co',
+    'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8'
+  );
+
+  // Hide page until we know the user is logged in (prevents flash)
+  document.documentElement.style.visibility = 'hidden';
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.replace('login.html');
+    } else {
+      document.documentElement.style.visibility = 'visible';
+    }
+  })();
+
+  // If user signs out in another tab, kick them back to login
+  sb.auth.onAuthStateChange((event) => {
+    if (event === 'SIGNED_OUT') window.location.replace('login.html');
+  });
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.replace('login.html');
+  }
+</script>
+
+
 <div class="app">
 
   <!-- ── SIDEBAR ─────────────────────────────────────────── -->
@@ -594,6 +626,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <div class="topbar-right">
       <button class="tb-btn ghost" onclick="toggleAIChat()">💬 Ask assistant</button>
       <button class="tb-btn primary" onclick="goTo('settings',null)">⚙ Assistant Settings</button>
+      <button class="tb-btn ghost" onclick="logout()">↩ Log out</button>
     </div>
   </header>
 
