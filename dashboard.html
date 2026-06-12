@@ -244,6 +244,19 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .form-status { font-size: 12px; font-family: var(--mono); }
 .form-status.success { color: var(--green); }
 .form-status.error { color: var(--red); }
+
+/* ── SETTINGS HUB ────────────────────────────────────────── */
+.settings-hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+@media(max-width:900px){ .settings-hub-grid { grid-template-columns: 1fr 1fr; } }
+.sh-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: box-shadow .2s; }
+.sh-card:hover { box-shadow: var(--shadow); }
+.sh-card-full { grid-column: 1 / -1; }
+.sh-card-head { display: flex; align-items: center; gap: 14px; }
+.sh-card-icon { font-size: 22px; flex-shrink: 0; }
+.sh-card-title { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.sh-card-desc { font-size: 12px; color: var(--ink3); font-family: var(--mono); }
+.sh-card-head .btn-primary { margin-left: auto; flex-shrink: 0; }
+.sh-soon { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--surface2); color: var(--ink3); font-family: var(--mono); margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -327,6 +340,18 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 
   supa.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') window.location.replace('login.html');
+    if (event === 'PASSWORD_RECOVERY') {
+      // Fired when user arrives from a recovery email link
+      setTimeout(() => {
+        if (typeof goTo === 'function') {
+          goTo('profile', null);
+          const expand = document.getElementById('pw-expand');
+          const btn    = document.getElementById('pw-toggle-btn');
+          if (expand) expand.style.display = '';
+          if (btn)    btn.style.display    = 'none';
+        }
+      }, 200);
+    }
   });
 
   async function logout() {
@@ -359,17 +384,17 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     </div>
     <nav class="sb-nav">
       <div class="sb-section">Overview</div>
-      <div class="sb-item active" onclick="goTo('dashboard',this)">Dashboard</div>
+      <div class="sb-item active" data-page="dashboard" onclick="goTo('dashboard',this)">Dashboard</div>
       <div class="sb-section">Conversations</div>
-      <div class="sb-item" onclick="goTo('inbox',this)">Smart Inbox <span class="sb-badge">5</span></div>
-      <div class="sb-item" onclick="goTo('todo',this)">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
+      <div class="sb-item" data-page="inbox" onclick="goTo('inbox',this)">Smart Inbox <span class="sb-badge">5</span></div>
+      <div class="sb-item" data-page="todo" onclick="goTo('todo',this)">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
       <div class="sb-section">Business</div>
-      <div class="sb-item" onclick="goTo('bookings',this)">Test Drives</div>
-      <div class="sb-item" onclick="goTo('missed',this)">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
-      <div class="sb-item" onclick="goTo('performance',this)">Performance</div>
+      <div class="sb-item" data-page="bookings" onclick="goTo('bookings',this)">Test Drives</div>
+      <div class="sb-item" data-page="missed" onclick="goTo('missed',this)">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
+      <div class="sb-item" data-page="performance" onclick="goTo('performance',this)">Performance</div>
       <div class="sb-section">Account</div>
-      <div class="sb-item" onclick="goTo('settings',this)">⚙️ Settings</div>
-      <div class="sb-item" onclick="goTo('profile',this)">👤 Profile</div>
+      <div class="sb-item" data-page="settings" onclick="goTo('settings',this)">⚙️ Settings</div>
+      <div class="sb-item" data-page="profile" onclick="goTo('profile',this)">👤 Profile</div>
     </nav>
   </aside>
 
@@ -609,25 +634,29 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
           </div>
           <div id="prof-edit-note" style="display:none;margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--ink2);font-family:var(--mono);">To update dealership details, visit ⚙️ Settings.</div>
 
-          <!-- Change Password (inline) -->
-          <div class="settings-section" style="margin-top:24px;">
+          <!-- Change Password (collapsible) -->
+          <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
+            <button class="btn-primary" id="pw-toggle-btn" onclick="togglePwForm()">Change Password</button>
+          </div>
+          <div id="pw-expand" style="display:none;margin-top:16px;">
             <div class="settings-section-title">Change Password</div>
-            <div class="form-grid">
+            <div class="form-grid" style="margin-top:10px;">
               <div class="form-field" style="grid-column:1/-1">
                 <label class="form-label" for="pw-current">Current Password</label>
-                <input type="password" id="pw-current" placeholder="Enter current password" autocomplete="current-password">
+                <input class="form-input" type="password" id="pw-current" placeholder="Enter current password" autocomplete="current-password">
               </div>
               <div class="form-field">
                 <label class="form-label" for="pw-new">New Password</label>
-                <input type="password" id="pw-new" placeholder="Min 8 characters" autocomplete="new-password">
+                <input class="form-input" type="password" id="pw-new" placeholder="Min 8 characters" autocomplete="new-password">
               </div>
               <div class="form-field">
                 <label class="form-label" for="pw-confirm">Confirm New Password</label>
-                <input type="password" id="pw-confirm" placeholder="Repeat new password" autocomplete="new-password">
+                <input class="form-input" type="password" id="pw-confirm" placeholder="Repeat new password" autocomplete="new-password">
               </div>
             </div>
             <div class="form-actions" style="margin-top:12px;">
               <button class="btn-primary" id="pw-save-btn" onclick="handleSecurePasswordChange()">Update Password</button>
+              <button class="tb-btn ghost" onclick="togglePwForm()">Cancel</button>
               <span class="form-status" id="pw-status"></span>
             </div>
           </div>
@@ -638,62 +667,131 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     <!-- SETTINGS PANEL -->
     <div class="page" id="page-settings">
       <div class="page-content">
-        <div class="panel" style="padding:24px 28px;max-width:720px;">
-          <div class="settings-section">
-            <div class="settings-section-title">Dealer Profile</div>
-            <div class="form-grid">
-              <div class="form-field" style="grid-column:1/-1">
-                <label class="form-label" for="dp-name">Dealership Name</label>
-                <input class="form-input" id="dp-name" type="text" placeholder="e.g. Sri Saamba Motors">
+        <div class="settings-hub-grid">
+
+          <!-- Dealer Profile -->
+          <div class="sh-card sh-card-full">
+            <div class="sh-card-head">
+              <div class="sh-card-icon">🏪</div>
+              <div style="flex:1">
+                <div class="sh-card-title">Dealer Profile</div>
+                <div class="sh-card-desc">Name, address, contact &amp; timezone</div>
               </div>
-              <div class="form-field" style="grid-column:1/-1">
-                <label class="form-label" for="dp-tagline">Tagline</label>
-                <input class="form-input" id="dp-tagline" type="text" placeholder="e.g. Your trusted local dealer">
-              </div>
-              <div class="form-field" style="grid-column:1/-1">
-                <label class="form-label" for="dp-email">Company Email</label>
-                <input class="form-input" id="dp-email" type="email" placeholder="e.g. info@yourdealership.com">
-              </div>
-              <div class="form-field" style="grid-column:1/-1">
-                <label class="form-label" for="dp-street">Street Address</label>
-                <input class="form-input" id="dp-street" type="text" placeholder="123 Main St">
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="dp-city">City</label>
-                <input class="form-input" id="dp-city" type="text" placeholder="City">
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="dp-state">State</label>
-                <input class="form-input" id="dp-state" type="text" placeholder="State">
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="dp-zip">ZIP Code</label>
-                <input class="form-input" id="dp-zip" type="text" placeholder="ZIP Code">
-              </div>
-              <div class="form-field">
-                <label class="form-label" for="dp-country">Country</label>
-                <input class="form-input" id="dp-country" type="text" placeholder="Country">
-              </div>
-              <div class="form-field" style="grid-column:1/-1">
-                <label class="form-label" for="dp-timezone">Timezone</label>
-                <select class="form-input" id="dp-timezone">
-                  <option value="">Select timezone…</option>
-                  <option value="America/New_York">Eastern Time (ET)</option>
-                  <option value="America/Chicago">Central Time (CT)</option>
-                  <option value="America/Denver">Mountain Time (MT)</option>
-                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                  <option value="America/Phoenix">Arizona (MST no DST)</option>
-                  <option value="America/Anchorage">Alaska (AKT)</option>
-                  <option value="Pacific/Honolulu">Hawaii (HST)</option>
-                  <option value="UTC">UTC</option>
-                </select>
-              </div>
+              <button class="btn-primary" id="dp-edit-btn" onclick="openDpForm()">Edit Profile</button>
             </div>
-            <div class="form-actions">
-              <button class="btn-primary" id="dp-save-btn" onclick="saveDealerProfile()">Save Profile</button>
-              <span class="form-status" id="dp-status"></span>
+            <div id="dp-form-section" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+              <div class="form-grid">
+                <div class="form-field" style="grid-column:1/-1">
+                  <label class="form-label" for="dp-name">Dealership Name</label>
+                  <input class="form-input" id="dp-name" type="text" placeholder="e.g. Sri Saamba Motors">
+                </div>
+                <div class="form-field" style="grid-column:1/-1">
+                  <label class="form-label" for="dp-tagline">Tagline</label>
+                  <input class="form-input" id="dp-tagline" type="text" placeholder="e.g. Your trusted local dealer">
+                </div>
+                <div class="form-field" style="grid-column:1/-1">
+                  <label class="form-label" for="dp-email">Company Email</label>
+                  <input class="form-input" id="dp-email" type="email" placeholder="e.g. info@yourdealership.com">
+                </div>
+                <div class="form-field" style="grid-column:1/-1">
+                  <label class="form-label" for="dp-street">Street Address</label>
+                  <input class="form-input" id="dp-street" type="text" placeholder="123 Main St">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="dp-city">City</label>
+                  <input class="form-input" id="dp-city" type="text" placeholder="City">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="dp-state">State</label>
+                  <input class="form-input" id="dp-state" type="text" placeholder="State">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="dp-zip">ZIP Code</label>
+                  <input class="form-input" id="dp-zip" type="text" placeholder="ZIP Code">
+                </div>
+                <div class="form-field">
+                  <label class="form-label" for="dp-country">Country</label>
+                  <input class="form-input" id="dp-country" type="text" placeholder="Country">
+                </div>
+                <div class="form-field" style="grid-column:1/-1">
+                  <label class="form-label" for="dp-timezone">Timezone</label>
+                  <select class="form-input" id="dp-timezone">
+                    <option value="">Select timezone…</option>
+                    <option value="America/New_York">Eastern Time (ET)</option>
+                    <option value="America/Chicago">Central Time (CT)</option>
+                    <option value="America/Denver">Mountain Time (MT)</option>
+                    <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                    <option value="America/Phoenix">Arizona (MST no DST)</option>
+                    <option value="America/Anchorage">Alaska (AKT)</option>
+                    <option value="Pacific/Honolulu">Hawaii (HST)</option>
+                    <option value="UTC">UTC</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn-primary" id="dp-save-btn" onclick="saveDealerProfile()">Save Profile</button>
+                <button class="tb-btn ghost" onclick="closeDpForm()">Cancel</button>
+                <span class="form-status" id="dp-status"></span>
+              </div>
             </div>
           </div>
+
+          <!-- Security -->
+          <div class="sh-card">
+            <div class="sh-card-icon">🔐</div>
+            <div class="sh-card-title">Security</div>
+            <div class="sh-card-desc">Password &amp; access controls</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
+          <!-- Branding -->
+          <div class="sh-card">
+            <div class="sh-card-icon">🎨</div>
+            <div class="sh-card-title">Branding</div>
+            <div class="sh-card-desc">Logo, colors &amp; voice</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
+          <!-- Team -->
+          <div class="sh-card">
+            <div class="sh-card-icon">👥</div>
+            <div class="sh-card-title">Team</div>
+            <div class="sh-card-desc">Members &amp; permissions</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
+          <!-- Notifications -->
+          <div class="sh-card">
+            <div class="sh-card-icon">🔔</div>
+            <div class="sh-card-title">Notifications</div>
+            <div class="sh-card-desc">Alerts &amp; escalation rules</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
+          <!-- AI Preferences -->
+          <div class="sh-card">
+            <div class="sh-card-icon">🤖</div>
+            <div class="sh-card-title">AI Preferences</div>
+            <div class="sh-card-desc">Tone, scripts &amp; behavior</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
+          <!-- Integrations -->
+          <div class="sh-card">
+            <div class="sh-card-icon">🔌</div>
+            <div class="sh-card-title">Integrations</div>
+            <div class="sh-card-desc">CRM, DMS &amp; phone systems</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
+          <!-- Billing -->
+          <div class="sh-card">
+            <div class="sh-card-icon">💳</div>
+            <div class="sh-card-title">Billing</div>
+            <div class="sh-card-desc">Plan, usage &amp; invoices</div>
+            <div class="sh-soon">Coming soon</div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -712,20 +810,71 @@ const pages = {
   profile:     { title: 'Profile', sub: 'Your account details' }
 };
 
+const HASH_IDS = { dashboard:'dashboard', inbox:'smart-inbox', todo:'action-center', bookings:'test-drives', missed:'missed-calls', performance:'performance', settings:'settings', profile:'profile' };
+const ID_FROM_HASH = Object.fromEntries(Object.entries(HASH_IDS).map(([k,v])=>[v,k]));
+
 function goTo(id, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + id)?.classList.add('active');
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
-  if (el) el.classList.add('active');
+  const target = el || document.querySelector('.sb-item[data-page="' + id + '"]');
+  if (target) target.classList.add('active');
   document.getElementById('page-title').textContent = pages[id]?.title || id;
   document.getElementById('page-sub').textContent = pages[id]?.sub || '';
+  history.replaceState(null, '', '#' + (HASH_IDS[id] || id));
 
-  // Presentation UI Injection layer triggers on manual clicks inside Demo views
-  if (window.isDemoActive) {
-    applyDemoUIData(id);
-  }
+  if (window.isDemoActive) applyDemoUIData(id);
   if (id === 'profile' && typeof loadProfilePage === 'function') loadProfilePage();
 }
+
+function openDpForm() {
+  const form = document.getElementById('dp-form-section');
+  const btn  = document.getElementById('dp-edit-btn');
+  if (form) form.style.display = '';
+  if (btn)  btn.style.display  = 'none';
+  const d = window.currentDealership;
+  if (d) {
+    const sv = (elId, val) => { const e = document.getElementById(elId); if (e) e.value = val || ''; };
+    sv('dp-name', d.name); sv('dp-tagline', d.tagline); sv('dp-email', d.contact_email);
+    sv('dp-street', d.street_address); sv('dp-city', d.city); sv('dp-state', d.state);
+    sv('dp-zip', d.zip_code); sv('dp-country', d.country); sv('dp-timezone', d.timezone);
+  }
+}
+
+function closeDpForm() {
+  const form = document.getElementById('dp-form-section');
+  const btn  = document.getElementById('dp-edit-btn');
+  if (form) form.style.display = 'none';
+  if (btn)  btn.style.display  = '';
+  const s = document.getElementById('dp-status');
+  if (s) { s.textContent = ''; s.className = 'form-status'; }
+}
+
+function togglePwForm() {
+  const expand = document.getElementById('pw-expand');
+  const btn    = document.getElementById('pw-toggle-btn');
+  if (!expand) return;
+  const isOpen = expand.style.display !== 'none';
+  expand.style.display = isOpen ? 'none' : '';
+  if (btn) btn.style.display = isOpen ? '' : 'none';
+  if (isOpen) {
+    ['pw-current','pw-new','pw-confirm'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const s = document.getElementById('pw-status');
+    if (s) { s.textContent = ''; s.className = 'form-status'; }
+  }
+}
+
+window.addEventListener('hashchange', () => {
+  const raw = window.location.hash.slice(1);
+  if (raw.includes('access_token')) return;
+  goTo(ID_FROM_HASH[raw] || 'dashboard', null);
+});
+
+(function initFromHash() {
+  const raw = window.location.hash.slice(1);
+  if (raw.includes('access_token')) return;
+  goTo(ID_FROM_HASH[raw] || 'dashboard', null);
+})();
 
 function applyDemoUIData(pageId) {
   if (pageId === 'dashboard') {

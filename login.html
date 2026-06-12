@@ -273,7 +273,7 @@
     }
     setMessage('Sending reset link…', '');
     const { error } = await supa.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/reset-password.html'
+      redirectTo: window.location.origin + '/dashboard.html#profile'
     });
     if (error) {
       setMessage(error.message, 'error');

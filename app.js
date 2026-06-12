@@ -308,6 +308,12 @@ async function handleSecurePasswordChange() {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    setTimeout(() => {
+      if (typeof togglePwForm === 'function') {
+        const expand = document.getElementById('pw-expand');
+        if (expand && expand.style.display !== 'none') togglePwForm();
+      }
+    }, 1500);
   }
 
   if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
@@ -348,7 +354,7 @@ async function saveDealerProfile() {
     Object.assign(window.currentDealership, payload);
     setText('sb-dealer-name', payload.name || window.currentDealership.name);
     if (status) { status.textContent = 'Profile saved successfully.'; status.className = 'form-status success'; }
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
+    setTimeout(() => { if (typeof closeDpForm === 'function') closeDpForm(); }, 1200);
   }
 
   if (btn) { btn.disabled = false; btn.textContent = 'Save Profile'; }
