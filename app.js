@@ -15,16 +15,11 @@ async function getSession() {
   return session;
 }
 
-// Post-auth routing: every signed-in user goes straight to the dashboard.
-// (Onboarding flow removed — no membership checks, no onboarding redirect.)
 async function routeAfterAuth() {
   window.location.replace('dashboard.html');
 }
 
-/* ── Dealership KPIs ─────────────────────────────────────────────
-   Every query below runs through the authenticated client, so RLS
-   scopes each one to the signed-in user's own dealer_id — no other
-   tenant's rows are reachable regardless of the filter sent. */
+/* ── Dealership KPIs ───────────────────────────────────────────── */
 async function fetchDealerMetrics() {
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -65,11 +60,7 @@ async function fetchDealerMetrics() {
   };
 }
 
-/* ── Dashboard live data ─────────────────────────────────────────
-   Fills dashboard.html's widgets with the tenant's real rows. If the
-   Phase 2 tables are missing or a query fails, the static demo content
-   in the markup is simply left in place. */
-
+/* ── Dashboard live data ───────────────────────────────────────── */
 const escHtml = s => String(s == null ? '' : s)
   .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
   .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
@@ -110,7 +101,6 @@ function setText(id, text) {
 }
 
 window.loadLiveData = async function (dealerId) {
-  // Seed demo rows once for dealerships that pre-date Phase 2
   let { data: metricsRow, error: mErr } = await supa.from('dealership_metrics').select('*').maybeSingle();
   if (mErr) throw mErr;
   if (!metricsRow) {
@@ -161,6 +151,7 @@ window.loadLiveData = async function (dealerId) {
   const banner = document.getElementById('hot-banner');
   if (banner) {
     if (hot) {
+      banner.style.display = 'flex';
       setText('hot-text', '🔥 ' + hot.title);
       setText('hot-sub', hot.description || '');
     } else {
@@ -215,7 +206,7 @@ window.loadLiveData = async function (dealerId) {
   renderCol('ac-textback-items', 'ac-textback-count', tasks.filter(t => t.task_type === 'follow_up'));
   renderCol('ac-confirm-items', 'ac-confirm-count', tasks.filter(t => t.task_type === 'confirmation'));
 
-  // Live activity feed: merge recent calls, bookings, and tasks
+  // Live activity feed
   const events = [];
   (recentCalls.data || []).forEach(c => events.push({
     ts: c.created_at,
@@ -244,20 +235,34 @@ window.loadLiveData = async function (dealerId) {
       '<div class="activity-item"><div class="ai-dot" style="background:' + e.color + '"></div>'
       + '<div><div class="ai-text">' + e.html + '</div><div class="ai-ago">' + agoText(e.ts) + '</div></div></div>'
     ).join('');
+  } else if (feed) {
+    feed.innerHTML = '<div class="empty">No recent account activity logs</div>';
   }
 
-  // Month / performance / recovery KPIs.
-  // Response-time fields stay static: no response-time data is captured yet.
+  // Monthly performance view wiring
   setText('month-calls', dm.callsAnswered);
   setText('month-missed', dm.missedCallsRecovered);
   setText('month-booked', dm.appointmentsBooked);
   setText('month-afterhours', dm.afterHoursMonth);
+  
   setText('perf-calls', dm.callsAnswered);
   setText('perf-bookrate', dm.bookingRate + '%');
   setText('perf-bookrate-sub', dm.appointmentsBooked + ' of ' + dm.callsAnswered + ' calls → test drive');
   setText('perf-revenue-total', '$' + dm.revenueProtected.toLocaleString() + ' total');
+  
   setText('rb-recovered', dm.recoveredWeek);
   setText('rb-afterhours', dm.afterHoursWeek);
   setText('rb-revenue', '$' + (dm.recoveredWeek * 540).toLocaleString());
   setText('bookings-month-count', dm.appointmentsBooked + ' this month');
+
+  // Dynamic layout adjustment: Hide vector path metrics graph lines if metrics evaluate to zero
+  const revenueChartPath = document.querySelector('.chart-svg path:nth-child(2)');
+  const revenueChartFill = document.querySelector('.chart-svg path:nth-child(1)');
+  if (dm.callsAnswered === 0 && revenueChartPath && revenueChartFill) {
+    revenueChartPath.style.display = 'none';
+    revenueChartFill.style.display = 'none';
+  } else if (revenueChartPath && revenueChartFill) {
+    revenueChartPath.style.display = 'block';
+    revenueChartFill.style.display = 'block';
+  }
 };
