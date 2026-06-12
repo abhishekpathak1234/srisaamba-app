@@ -228,6 +228,22 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 
 .badge-pill { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 99px; font-family: var(--mono); }
 .empty { padding: 40px; text-align: center; color: var(--ink3); font-size: 13px; }
+
+/* ── SETTINGS / PROFILE FORM ─────────────────────────────── */
+.settings-section { margin-bottom: 28px; }
+.settings-section-title { font-size: 13px; font-weight: 700; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-field { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: .06em; font-family: var(--mono); }
+.form-input { padding: 9px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); font-size: 13px; color: var(--ink); background: var(--surface); outline: none; transition: border-color .15s; }
+.form-input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px var(--orange-s); }
+.form-actions { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+.btn-primary { padding: 9px 22px; background: var(--orange); color: white; font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); transition: opacity .15s; }
+.btn-primary:hover { opacity: .88; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.form-status { font-size: 12px; font-family: var(--mono); }
+.form-status.success { color: var(--green); }
+.form-status.error { color: var(--red); }
 </style>
 </head>
 <body>
@@ -351,6 +367,8 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       <div class="sb-item" onclick="goTo('bookings',this)">Test Drives</div>
       <div class="sb-item" onclick="goTo('missed',this)">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
       <div class="sb-item" onclick="goTo('performance',this)">Performance</div>
+      <div class="sb-section">Account</div>
+      <div class="sb-item" onclick="goTo('settings',this)">Settings</div>
     </nav>
   </aside>
 
@@ -503,6 +521,69 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
         <div class="panel"><div class="inbox-shell"><div class="inbox-list"><div class="empty">Inbox channels synced offline</div></div><div class="chat-panel"><div class="empty">Select a conversation thread</div></div></div></div>
       </div>
     </div>
+
+    <!-- SETTINGS PANEL -->
+    <div class="page" id="page-settings">
+      <div class="page-content">
+        <div class="panel" style="padding:24px 28px;max-width:720px;">
+          <div class="settings-section">
+            <div class="settings-section-title">Dealer Profile</div>
+            <div class="form-grid">
+              <div class="form-field" style="grid-column:1/-1">
+                <label class="form-label" for="dp-name">Dealership Name</label>
+                <input class="form-input" id="dp-name" type="text" placeholder="e.g. Sri Saamba Motors">
+              </div>
+              <div class="form-field" style="grid-column:1/-1">
+                <label class="form-label" for="dp-tagline">Tagline</label>
+                <input class="form-input" id="dp-tagline" type="text" placeholder="e.g. Your trusted local dealer">
+              </div>
+              <div class="form-field" style="grid-column:1/-1">
+                <label class="form-label" for="dp-email">Company Email</label>
+                <input class="form-input" id="dp-email" type="email" placeholder="e.g. info@yourdealership.com">
+              </div>
+              <div class="form-field" style="grid-column:1/-1">
+                <label class="form-label" for="dp-street">Street Address</label>
+                <input class="form-input" id="dp-street" type="text" placeholder="123 Main St">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="dp-city">City</label>
+                <input class="form-input" id="dp-city" type="text" placeholder="City">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="dp-state">State</label>
+                <input class="form-input" id="dp-state" type="text" placeholder="State">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="dp-zip">ZIP Code</label>
+                <input class="form-input" id="dp-zip" type="text" placeholder="ZIP Code">
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="dp-country">Country</label>
+                <input class="form-input" id="dp-country" type="text" placeholder="Country">
+              </div>
+              <div class="form-field" style="grid-column:1/-1">
+                <label class="form-label" for="dp-timezone">Timezone</label>
+                <select class="form-input" id="dp-timezone">
+                  <option value="">Select timezone…</option>
+                  <option value="America/New_York">Eastern Time (ET)</option>
+                  <option value="America/Chicago">Central Time (CT)</option>
+                  <option value="America/Denver">Mountain Time (MT)</option>
+                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                  <option value="America/Phoenix">Arizona (MST no DST)</option>
+                  <option value="America/Anchorage">Alaska (AKT)</option>
+                  <option value="Pacific/Honolulu">Hawaii (HST)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn-primary" id="dp-save-btn" onclick="saveDealerProfile()">Save Profile</button>
+              <span class="form-status" id="dp-status"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -513,7 +594,8 @@ const pages = {
   todo:        { title: 'Action Center', sub: 'Actions tracking queue' },
   bookings:    { title: 'Test Drive Bookings', sub: 'Complete booking ledger' },
   missed:      { title: 'Missed Calls Recovered', sub: 'Recovery system analytics' },
-  performance: { title: 'Performance', sub: 'Account diagnostics engine' }
+  performance: { title: 'Performance', sub: 'Account diagnostics engine' },
+  settings:    { title: 'Settings', sub: 'Dealer profile & account' }
 };
 
 function goTo(id, el) {

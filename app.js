@@ -209,4 +209,60 @@ window.loadLiveData = async function (dealerId) {
     revenueChartPath.style.display = 'block';
     revenueChartFill.style.display = 'block';
   }
+
+  // Pre-fill dealer profile form fields from current dealership record
+  const d = window.currentDealership;
+  if (d) {
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    setVal('dp-name',     d.name);
+    setVal('dp-tagline',  d.tagline);
+    setVal('dp-email',    d.company_email);
+    setVal('dp-street',   d.street_address);
+    setVal('dp-city',     d.city);
+    setVal('dp-state',    d.state);
+    setVal('dp-zip',      d.zip_code);
+    setVal('dp-country',  d.country);
+    setVal('dp-timezone', d.timezone);
+  }
 };
+
+/* ── Dealer Profile update (strictly scoped to currentDealership.id) ── */
+async function saveDealerProfile() {
+  const id = window.currentDealership?.id;
+  if (!id) return;
+
+  const btn    = document.getElementById('dp-save-btn');
+  const status = document.getElementById('dp-status');
+  if (btn)    { btn.disabled = true; btn.textContent = 'Saving…'; }
+  if (status) { status.textContent = ''; status.className = 'form-status'; }
+
+  const getVal = elId => (document.getElementById(elId)?.value || '').trim();
+
+  const payload = {
+    name:           getVal('dp-name'),
+    tagline:        getVal('dp-tagline'),
+    company_email:  getVal('dp-email'),
+    street_address: getVal('dp-street'),
+    city:           getVal('dp-city'),
+    state:          getVal('dp-state'),
+    zip_code:       getVal('dp-zip'),
+    country:        getVal('dp-country'),
+    timezone:       getVal('dp-timezone'),
+  };
+
+  const { error } = await supa
+    .from('dealerships')
+    .update(payload)
+    .eq('id', id);
+
+  if (error) {
+    if (status) { status.textContent = 'Save failed: ' + error.message; status.className = 'form-status error'; }
+  } else {
+    Object.assign(window.currentDealership, payload);
+    setText('sb-dealer-name', payload.name || window.currentDealership.name);
+    if (status) { status.textContent = '✓ Profile saved'; status.className = 'form-status success'; }
+    setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Save Profile'; }
+}
