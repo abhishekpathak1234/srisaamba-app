@@ -94,7 +94,7 @@ a { text-decoration: none; color: inherit; }
 .tb-btn.ghost:hover { background: var(--surface3); }
 .ai-status { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(26,122,80,.08); border: 1px solid rgba(26,122,80,.2); border-radius: 99px; font-size: 11px; font-weight: 600; color: var(--green); font-family: var(--mono); }
 
-/* ── MAIN LAYOUT PANELS ──────────────────────────────────── */
+/* ── LAYOUT MECHANICS ────────────────────────────────────── */
 .main { grid-column: 2; overflow-y: auto; }
 .page { display: none; animation: fadeIn .2s ease; }
 .page.active { display: block; }
@@ -139,7 +139,7 @@ a { text-decoration: none; color: inherit; }
 .panel-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
 .panel-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
 
-/* ── SMART INBOX & CHAT CORE ────────────────────────────── */
+/* ── INBOX & CHAT LAYOUT ARCHITECTURE ────────────────────── */
 .inbox-shell { display: grid; grid-template-columns: 300px 1fr; height: 560px; }
 .inbox-list { border-right: 1px solid var(--border); overflow-y: auto; }
 .inbox-search { padding: 10px 12px; border-bottom: 1px solid var(--border); }
@@ -174,7 +174,7 @@ a { text-decoration: none; color: inherit; }
 .chat-actions { padding: 10px 18px; border-top: 1px solid var(--border); display: flex; gap: 6px; }
 .act-btn { font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border2); background: var(--surface); color: var(--ink2); }
 
-/* ── ACTION CENTER MULTI-BOARD ───────────────────────────── */
+/* ── ACTION CENTER BOARD TILES ──────────────────────────── */
 .todo-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; }
 @media(max-width:900px){.todo-board{grid-template-columns:repeat(2,1fr)}}
 .todo-col { border-right: 1px solid var(--border); }
@@ -187,7 +187,7 @@ a { text-decoration: none; color: inherit; }
 .ti-name { font-size: 13px; font-weight: 600; margin-bottom: 3px; }
 .ti-desc { font-size: 11px; color: var(--ink2); line-height: 1.5; margin-bottom: 5px; }
 
-/* ── CORE TABLE STYLING ──────────────────────────────────── */
+/* ── TABLE STYLING SHELLS ────────────────────────────────── */
 table { width: 100%; border-collapse: collapse; }
 th { padding: 10px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--ink3); font-family: var(--mono); text-align: left; background: var(--surface2); }
 td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
@@ -219,7 +219,6 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .mc-name { font-size: 13px; font-weight: 700; }
 .mc-meta { font-size: 11px; color: var(--ink3); font-family: var(--mono); }
 .mc-recovery { font-size: 11px; color: var(--green); font-weight: 600; }
-.mc-actions { display: flex; gap: 6px; margin-left: auto; align-self: center; }
 
 .recovery-banner { background: linear-gradient(90deg, rgba(26,122,80,.06) 0%, rgba(26,79,187,.04) 100%); border: 1px solid rgba(26,122,80,.15); border-radius: var(--radius-lg); padding: 16px 20px; display: flex; align-items: center; gap: 20px; margin-bottom: 14px; }
 .rb-stat { text-align: center; }
@@ -233,7 +232,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 </head>
 <body>
 
-<!-- ── SUPABASE AUTH GUARD (SECURE MULTI-TENANCY INTERCEPTOR) ── -->
+<!-- ── SUPABASE AUTH GUARD (MVP MULTI-TENANCY CONTROLLER) ── -->
 <script>
   document.documentElement.style.visibility = 'hidden';
 
@@ -241,38 +240,52 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     const urlParams = new URLSearchParams(window.location.search);
     const isDemoMode = urlParams.get('mode') === 'demo';
 
+    // 1. Safe Presentation Demo Mode Interceptor
     if (isDemoMode) {
       window.isDemoActive = true;
       document.getElementById('sb-dealer-name').textContent = "Sri Saamba Demo Motors";
       const today = new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       document.getElementById('page-sub').textContent = today + ' · Demo Mode';
-      
       document.getElementById('badge-actions').textContent = "8";
       document.getElementById('badge-missed').textContent = "18";
-      
       document.documentElement.style.visibility = 'visible';
       return; 
     }
 
+    // ✅ ARCHITECTURAL IMPROVEMENT: Safely scrub execution tokens on redirection arrival parameters tracking
+    if (urlParams.get('seeded') === 'true') {
+      sessionStorage.removeItem('seed_attempted');
+    }
+
+    // 2. Session Handshake Verification
     const session = await getSession();
     if (!session) { window.location.replace('login.html'); return; }
 
     try {
-      // 🚨 ENTERPRISE SECURITY ARCHITECTURE FIX: Resolve explicit membership link table rows instead of relying on blank filters
+      // 3. Resolve explicit link roster rows
       const { data: membership, error: memError } = await supa
         .from('dealership_members')
         .select('dealership_id')
         .eq('user_id', session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (memError || !membership) {
-        const { data: dealerId, error: seedError } = await supa.rpc('seed_demo_data');
-        if (seedError) throw seedError;
-        window.location.reload(); 
-        return;
+      // ✅ ARCHITECTURAL CORRECTIONS: Check token storage parameters state to fire seeding engine exactly once safely
+      if (!membership) {
+        const seedAttempted = sessionStorage.getItem('seed_attempted');
+        
+        if (!seedAttempted) {
+          sessionStorage.setItem('seed_attempted', 'true');
+          await supa.rpc('seed_demo_data');
+          window.location.replace('dashboard.html?seeded=true');
+          return;
+        } else {
+          // Break loop failures tracking boundaries cleanly
+          sessionStorage.removeItem('seed_attempted');
+          window.location.replace('login.html');
+          return;
+        }
       }
 
-      // Explicit query confirmation matching user's concrete token assignment limits
       const { data: dealership, error: dealerError } = await supa
         .from('dealerships')
         .select('*')
@@ -288,7 +301,9 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
         }
       }
     } catch (err) {
-      console.error('Critical core multi-tenancy fault isolation trace:', err.message);
+      console.error('Core multi-tenancy tracking exception:', err.message);
+      window.location.replace('login.html');
+      return;
     }
 
     document.documentElement.style.visibility = 'visible';
@@ -303,6 +318,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     window.location.replace('login.html');
   }
 
+  // Inject user workspace parameters directly into UI layout tokens
   function applyDealership(d) {
     window.currentDealership = d;
     document.getElementById('sb-dealer-name').textContent = d.name;
@@ -354,7 +370,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
   <!-- ── MAIN CONTENT ── -->
   <main class="main">
     
-    <!-- DASHBOARD VIEW -->
+    <!-- DASHBOARD PANEL -->
     <div class="page active" id="page-dashboard">
       <div class="page-content">
         <div class="kpi-grid">
@@ -398,7 +414,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       </div>
     </div>
 
-    <!-- ACTION CENTER VIEW -->
+    <!-- ACTION CENTER PANEL -->
     <div class="page" id="page-todo">
       <div class="page-content">
         <div class="panel">
@@ -427,7 +443,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       </div>
     </div>
 
-    <!-- TEST DRIVES VIEW -->
+    <!-- TEST DRIVES PANEL -->
     <div class="page" id="page-bookings">
       <div class="page-content">
         <div class="panel">
@@ -444,7 +460,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       </div>
     </div>
 
-    <!-- MISSED CALLS VIEW -->
+    <!-- MISSED CALLS PANEL -->
     <div class="page" id="page-missed">
       <div class="page-content">
         <div class="recovery-banner">
@@ -460,7 +476,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       </div>
     </div>
 
-    <!-- PERFORMANCE VIEW -->
+    <!-- PERFORMANCE PANEL -->
     <div class="page" id="page-performance">
       <div class="page-content">
         <div class="kpi-grid">
@@ -481,7 +497,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       </div>
     </div>
 
-    <!-- INBOX VIEW -->
+    <!-- SMART INBOX PANEL -->
     <div class="page" id="page-inbox">
       <div class="page-content">
         <div class="panel"><div class="inbox-shell"><div class="inbox-list"><div class="empty">Inbox channels synced offline</div></div><div class="chat-panel"><div class="empty">Select a conversation thread</div></div></div></div>
@@ -493,11 +509,11 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 <script>
 const pages = {
   dashboard:   { title: 'Dashboard', sub: '' },
-  inbox:       { title: 'Smart Inbox', sub: 'Active channels' },
-  todo:        { title: 'Action Center', sub: 'Actions tracking' },
-  bookings:    { title: 'Test Drive Bookings', sub: 'Complete logs' },
-  missed:      { title: 'Missed Calls Recovered', sub: 'Recovery system updates' },
-  performance: { title: 'Performance', sub: 'Diagnostics statistics' }
+  inbox:       { title: 'Smart Inbox', sub: 'Active accounts structure' },
+  todo:        { title: 'Action Center', sub: 'Actions tracking queue' },
+  bookings:    { title: 'Test Drive Bookings', sub: 'Complete booking ledger' },
+  missed:      { title: 'Missed Calls Recovered', sub: 'Recovery system analytics' },
+  performance: { title: 'Performance', sub: 'Account diagnostics engine' }
 };
 
 function goTo(id, el) {
@@ -508,6 +524,7 @@ function goTo(id, el) {
   document.getElementById('page-title').textContent = pages[id]?.title || id;
   document.getElementById('page-sub').textContent = pages[id]?.sub || '';
 
+  // Presentation UI Injection layer triggers on manual clicks inside Demo views
   if (window.isDemoActive) {
     applyDemoUIData(id);
   }
@@ -520,29 +537,29 @@ function applyDemoUIData(pageId) {
     document.getElementById('kpi-afterhours').textContent = "11";
     document.getElementById('kpi-revenue').textContent = "$25,380";
     document.getElementById('todays-bookings-body').innerHTML = `
-      <tr><td><div class="td-name">James Wilson</div></td><td>2020 Toyota Camry</td><td class="td-time">3:30 PM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>
-      <tr><td><div class="td-name">Priya Patel</div></td><td>2021 Honda CR-V</td><td class="td-time">6:30 PM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>`;
-    document.getElementById('activity-feed').innerHTML = `<div class="activity-item"><div class="ai-text"><strong>James Wilson</strong> booked test drive — 2020 Camry</div><div class="ai-ago">2 min ago</div></div>`;
+      <tr><td><div class="td-name">James Wilson</div></td><td>2020 Toyota Camry · $17,500</td><td class="td-time">10:00 AM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>
+      <tr><td><div class="td-name">Priya Patel</div></td><td>2021 Honda CR-V · $24,900</td><td class="td-time">1:00 PM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>`;
+    document.getElementById('activity-feed').innerHTML = `<div class="activity-item"><div class="ai-dot" style="background:var(--green)"></div><div class="ai-text"><strong>James Wilson</strong> auto-booked test drive — 10am Camry</div><div class="ai-ago">2 min ago</div></div>`;
   }
   if (pageId === 'todo') {
     document.getElementById('ac-callback-count').textContent = "2";
     document.getElementById('ac-callback-items').innerHTML = `
-      <div class="todo-item"><div class="ti-name">Billy Angry 🔥</div><div class="ti-desc">3 missed calls. Pricing on F-150. Threats to go elsewhere.</div></div>
-      <div class="todo-item"><div class="ti-name">Marcus Brown</div><div class="ti-desc">Trade-in valuation follow-up needed.</div></div>`;
+      <div class="todo-item"><div class="ti-name">Billy Angry 🔥</div><div class="ti-desc">3 missed calls. Threatening to leave over F-150 pricing.</div></div>
+      <div class="todo-item"><div class="ti-name">Marcus Brown</div><div class="ti-desc">Trade-in estimate validation required.</div></div>`;
     document.getElementById('ac-textback-count').textContent = "1";
-    document.getElementById('ac-textback-items').innerHTML = `<div class="todo-item"><div class="ti-name">Sarah Chen</div><div class="ti-desc">Chasing confirmation regarding sunroof options.</div></div>`;
+    document.getElementById('ac-textback-items').innerHTML = `<div class="todo-item"><div class="ti-name">Sarah Chen</div><div class="ti-desc">Sunroof availability validation on listing.</div></div>`;
   }
   if (pageId === 'bookings') {
     document.getElementById('all-bookings-body').innerHTML = `
-      <tr><td class="td-ref">AC-051</td><td class="td-name">James Wilson</td><td>2020 Toyota Camry</td><td class="td-time">Tue 19 May · 10:00 AM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>
-      <tr><td class="td-ref">AC-049</td><td class="td-name">Tom Reeves</td><td>2019 Ford Ranger</td><td class="td-time">Mon 18 May · 3:30 PM</td><td><span class="badge-pill t-amber">◌ Pending</span></td></tr>`;
+      <tr><td class="td-ref">AC-051</td><td class="td-name">James Wilson</td><td>2020 Toyota Camry · $17,500</td><td class="td-time">Tue 19 May · 10:00 AM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>
+      <tr><td class="td-ref">AC-050</td><td class="td-name">Priya Patel</td><td>2021 Honda CR-V · $24,900</td><td class="td-time">Tue 19 May · 1:00 PM</td><td><span class="badge-pill t-green">● Confirmed</span></td></tr>`;
   }
   if (pageId === 'missed') {
     document.getElementById('rb-recovered').textContent = "18";
     document.getElementById('rb-afterhours').textContent = "11";
     document.getElementById('rb-revenue').textContent = "$9,720";
     document.getElementById('missed-calls-container').innerHTML = `
-      <div class="missed-call-row"><div class="mc-icon">📞</div><div><div class="mc-name">Billy Angry</div><div class="mc-meta">Direct line · 3 missed calls · F-150 pricing</div><div class="mc-recovery">✓ Recovered instantly via receptionist track routing</div></div></div>`;
+      <div class="missed-call-row"><div class="mc-icon">📞</div><div><div class="mc-name">Billy Angry</div><div class="mc-meta">Direct line · 3 missed records · F-150 layout</div><div class="mc-recovery">✓ Recovered and qualified automatically by virtual agent</div></div></div>`;
   }
 }
 
