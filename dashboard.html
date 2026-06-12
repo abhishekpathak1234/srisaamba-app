@@ -890,28 +890,28 @@ textarea.form-input { resize: vertical; min-height: 80px; }
                 <div class="ms-label">Calls answered by assistant</div>
                 <div class="ms-bar"><div class="ms-fill" style="width:82%;background:var(--orange)"></div></div>
               </div>
-              <div class="ms-val font-mono">134</div>
+              <div class="ms-val font-mono" id="month-calls">134</div>
             </div>
             <div class="mini-stat">
               <div class="ms-left">
                 <div class="ms-label">Missed calls recovered</div>
                 <div class="ms-bar"><div class="ms-fill" style="width:58%;background:var(--red)"></div></div>
               </div>
-              <div class="ms-val font-mono">18</div>
+              <div class="ms-val font-mono" id="month-missed">18</div>
             </div>
             <div class="mini-stat">
               <div class="ms-left">
                 <div class="ms-label">Test drives booked</div>
                 <div class="ms-bar"><div class="ms-fill" style="width:64%;background:var(--green)"></div></div>
               </div>
-              <div class="ms-val font-mono">47</div>
+              <div class="ms-val font-mono" id="month-booked">47</div>
             </div>
             <div class="mini-stat">
               <div class="ms-left">
                 <div class="ms-label">After-hours leads captured</div>
                 <div class="ms-bar"><div class="ms-fill" style="width:44%;background:var(--blue)"></div></div>
               </div>
-              <div class="ms-val font-mono">31</div>
+              <div class="ms-val font-mono" id="month-afterhours">31</div>
             </div>
             <div class="mini-stat">
               <div class="ms-left">
@@ -1120,7 +1120,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
           <div class="panel-head">
             <div class="panel-title">All Test Drive Bookings</div>
             <div style="display:flex;gap:8px;align-items:center">
-              <span style="font-size:11px;color:var(--ink3);font-family:var(--mono)">47 this month</span>
+              <span style="font-size:11px;color:var(--ink3);font-family:var(--mono)" id="bookings-month-count">47 this month</span>
               <button class="tb-btn primary" style="font-size:11px;padding:5px 12px">+ Add manual</button>
             </div>
           </div>
@@ -1148,12 +1148,12 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         <!-- Recovery stats banner -->
         <div class="recovery-banner">
           <div class="rb-stat">
-            <div class="rb-num">18</div>
+            <div class="rb-num" id="rb-recovered">18</div>
             <div class="rb-label">recovered this week</div>
           </div>
           <div class="rb-divider"></div>
           <div class="rb-stat">
-            <div class="rb-num" style="color:var(--blue)">11</div>
+            <div class="rb-num" style="color:var(--blue)" id="rb-afterhours">11</div>
             <div class="rb-label">after-hours leads</div>
           </div>
           <div class="rb-divider"></div>
@@ -1163,7 +1163,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
           </div>
           <div class="rb-divider"></div>
           <div class="rb-stat">
-            <div class="rb-num" style="color:var(--red)">$9,720</div>
+            <div class="rb-num" style="color:var(--red)" id="rb-revenue">$9,720</div>
             <div class="rb-label">revenue protected</div>
           </div>
           <div style="margin-left:auto;font-size:12px;color:var(--ink2);max-width:200px;line-height:1.5;">Every one of these leads would have gone unanswered without AutoClient.</div>
@@ -1251,8 +1251,8 @@ textarea.form-input { resize: vertical; min-height: 80px; }
     <div class="page" id="page-performance">
       <div class="page-content">
         <div class="kpi-grid">
-          <div class="kpi k-orange"><div class="kpi-icon">📞</div><div class="kpi-label">Calls answered</div><div class="kpi-value">134</div><div class="kpi-delta"><span class="up">↑ 28%</span> vs last month</div></div>
-          <div class="kpi k-green"><div class="kpi-icon">✅</div><div class="kpi-label">Booking rate</div><div class="kpi-value">35%</div><div class="kpi-delta">47 of 134 calls → test drive</div></div>
+          <div class="kpi k-orange"><div class="kpi-icon">📞</div><div class="kpi-label">Calls answered</div><div class="kpi-value" id="perf-calls">134</div><div class="kpi-delta"><span class="up">↑ 28%</span> vs last month</div></div>
+          <div class="kpi k-green"><div class="kpi-icon">✅</div><div class="kpi-label">Booking rate</div><div class="kpi-value" id="perf-bookrate">35%</div><div class="kpi-delta" id="perf-bookrate-sub">47 of 134 calls → test drive</div></div>
           <div class="kpi k-blue"><div class="kpi-icon">⏱</div><div class="kpi-label">Avg response time</div><div class="kpi-value">22s</div><div class="kpi-delta">Industry avg: <span style="color:var(--red)">4+ hrs</span></div></div>
           <div class="kpi k-red"><div class="kpi-icon">🌟</div><div class="kpi-label">Google rating</div><div class="kpi-value">4.7</div><div class="kpi-delta"><span class="up">↑ 0.6</span> since AutoClient</div></div>
         </div>
@@ -1261,7 +1261,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
         <div class="panel section-gap">
           <div class="panel-head">
             <div class="panel-title">Revenue recovered — last 4 weeks</div>
-            <span style="font-size:11px;font-weight:700;color:var(--green)">$25,380 total</span>
+            <span style="font-size:11px;font-weight:700;color:var(--green)" id="perf-revenue-total">$25,380 total</span>
           </div>
           <div class="chart-wrap">
             <svg class="chart-svg" viewBox="0 0 480 100" preserveAspectRatio="none" height="100">
@@ -1748,6 +1748,22 @@ window.loadLiveData = async function (dealerId) {
       + '<div><div class="ai-text">' + e.html + '</div><div class="ai-ago">' + agoText(e.ts) + '</div></div></div>'
     ).join('');
   }
+
+  // Month / performance / recovery KPIs (computed in app.js).
+  // Response-time fields stay static: no response-time data is captured yet.
+  const dm = await fetchDealerMetrics();
+  setText('month-calls', dm.callsAnswered);
+  setText('month-missed', dm.missedCallsRecovered);
+  setText('month-booked', dm.appointmentsBooked);
+  setText('month-afterhours', dm.afterHoursMonth);
+  setText('perf-calls', dm.callsAnswered);
+  setText('perf-bookrate', dm.bookingRate + '%');
+  setText('perf-bookrate-sub', dm.appointmentsBooked + ' of ' + dm.callsAnswered + ' calls → test drive');
+  setText('perf-revenue-total', '$' + dm.revenueProtected.toLocaleString() + ' total');
+  setText('rb-recovered', dm.recoveredWeek);
+  setText('rb-afterhours', dm.afterHoursWeek);
+  setText('rb-revenue', '$' + (dm.recoveredWeek * 540).toLocaleString());
+  setText('bookings-month-count', dm.appointmentsBooked + ' this month');
 };
 
 // ── ASSISTANT CHAT WIDGET ──────────────────────────────────
