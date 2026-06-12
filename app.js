@@ -89,6 +89,7 @@ function setKpi(id, val, prefix) {
   if (!el || val == null) return;
   el.dataset.count = Math.round(Number(val));
   if (prefix) el.dataset.prefix = prefix;
+  el.textContent = (prefix || '') + Math.round(Number(val)).toLocaleString();
 }
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -186,6 +187,11 @@ window.loadLiveData = async function (dealerId) {
   setText('perf-bookrate', dm.bookingRate + '%');
   setText('perf-bookrate-sub', dm.appointmentsBooked + ' of ' + dm.callsAnswered + ' calls → test drive');
   setText('perf-revenue-total', '$' + dm.revenueProtected.toLocaleString() + ' total');
+
+  // Missed-calls recovery banner (revenue = recovered leads × $540 avg)
+  setText('rb-recovered', dm.recoveredWeek);
+  setText('rb-afterhours', dm.afterHoursWeek);
+  setText('rb-revenue', '$' + (dm.recoveredWeek * 540).toLocaleString());
 
   // Dynamically switch charts visibility off on empty dashboards
   const revenueChartPath = document.querySelector('.chart-svg path:nth-child(2)');
