@@ -87,9 +87,15 @@ const APPT_PILL = {
 function setKpi(id, val, prefix) {
   const el = document.getElementById(id);
   if (!el || val == null) return;
-  el.dataset.count = Math.round(Number(val));
-  if (prefix) el.dataset.prefix = prefix;
-  el.textContent = (prefix || '') + Math.round(Number(val)).toLocaleString();
+
+  const num = Math.round(Number(val));
+  el.dataset.count = num;
+
+  if (prefix) {
+    el.dataset.prefix = prefix;
+  }
+
+  el.textContent = (prefix || '') + num.toLocaleString();
 }
 function setText(id, text) {
   const el = document.getElementById(id);
@@ -131,6 +137,11 @@ window.loadLiveData = async function (dealerId) {
   setKpi('kpi-revenue', dm.revenueProtected, '$');
   setKpi('kpi-afterhours', dm.afterHoursWeek);
   if (typeof animateCounters === 'function') animateCounters();
+
+  // Recovery banner data populations (Weekly Scope Alignment)
+  setText('rb-recovered', dm.recoveredWeek);
+  setText('rb-afterhours', dm.afterHoursWeek);
+  setText('rb-revenue', '$' + dm.revenueProtected.toLocaleString());
 
   // Sidebar badges
   setText('badge-actions', tasks.length);
@@ -187,11 +198,6 @@ window.loadLiveData = async function (dealerId) {
   setText('perf-bookrate', dm.bookingRate + '%');
   setText('perf-bookrate-sub', dm.appointmentsBooked + ' of ' + dm.callsAnswered + ' calls → test drive');
   setText('perf-revenue-total', '$' + dm.revenueProtected.toLocaleString() + ' total');
-
-  // Missed-calls recovery banner (revenue = recovered leads × $540 avg)
-  setText('rb-recovered', dm.recoveredWeek);
-  setText('rb-afterhours', dm.afterHoursWeek);
-  setText('rb-revenue', '$' + (dm.recoveredWeek * 540).toLocaleString());
 
   // Dynamically switch charts visibility off on empty dashboards
   const revenueChartPath = document.querySelector('.chart-svg path:nth-child(2)');
