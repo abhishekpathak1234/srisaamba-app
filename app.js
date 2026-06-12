@@ -216,7 +216,7 @@ window.loadLiveData = async function (dealerId) {
     const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
     setVal('dp-name',     d.name);
     setVal('dp-tagline',  d.tagline);
-    setVal('dp-email',    d.company_email);
+    setVal('dp-email',    d.contact_email);
     setVal('dp-street',   d.street_address);
     setVal('dp-city',     d.city);
     setVal('dp-state',    d.state);
@@ -241,7 +241,7 @@ async function saveDealerProfile() {
   const payload = {
     name:           getVal('dp-name'),
     tagline:        getVal('dp-tagline'),
-    company_email:  getVal('dp-email'),
+    contact_email:  getVal('dp-email'),
     street_address: getVal('dp-street'),
     city:           getVal('dp-city'),
     state:          getVal('dp-state'),
