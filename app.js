@@ -226,6 +226,28 @@ window.loadLiveData = async function (dealerId) {
   }
 };
 
+/* ── Profile page population (read-only, no new DB queries beyond session) ── */
+async function loadProfilePage() {
+  const d = window.currentDealership;
+  if (d) {
+    setText('prof-dealer',  d.name    || '—');
+    setText('prof-timezone', d.timezone || '—');
+  }
+  const session = await getSession();
+  if (session?.user) {
+    setText('prof-email', session.user.email || '—');
+    const raw = session.user.created_at;
+    setText('prof-created', raw
+      ? new Date(raw).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      : '—');
+  }
+}
+
+function toggleEditProfile() {
+  const note = document.getElementById('prof-edit-note');
+  if (note) note.style.display = note.style.display === 'none' ? 'block' : 'none';
+}
+
 /* ── Dealer Profile update (strictly scoped to currentDealership.id) ── */
 async function saveDealerProfile() {
   const id = window.currentDealership?.id;
