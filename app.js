@@ -260,8 +260,8 @@ async function saveDealerProfile() {
   } else {
     Object.assign(window.currentDealership, payload);
     setText('sb-dealer-name', payload.name || window.currentDealership.name);
-    if (status) { status.textContent = '✓ Profile saved'; status.className = 'form-status success'; }
-    setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    if (status) { status.textContent = 'Profile saved successfully.'; status.className = 'form-status success'; }
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
   }
 
   if (btn) { btn.disabled = false; btn.textContent = 'Save Profile'; }
