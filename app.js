@@ -10,6 +10,25 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8
 
 const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+/* ── Route Registry ────────────────────────────────────────────────────
+   Single source of truth for all SPA navigation.
+   Key  = URL hash slug.  pageId = DOM section suffix (page-{pageId}).  */
+const ROUTES = {
+  'dashboard':     { pageId: 'dashboard',   title: 'Dashboard',              sub: '' },
+  'smart-inbox':   { pageId: 'inbox',       title: 'Smart Inbox',            sub: 'Active accounts structure' },
+  'action-center': { pageId: 'todo',        title: 'Action Center',          sub: 'Actions tracking queue' },
+  'test-drives':   { pageId: 'bookings',    title: 'Test Drive Bookings',    sub: 'Complete booking ledger' },
+  'missed-calls':  { pageId: 'missed',      title: 'Missed Calls Recovered', sub: 'Recovery system analytics' },
+  'performance':   { pageId: 'performance', title: 'Performance',            sub: 'Account diagnostics engine' },
+  'settings':      { pageId: 'settings',    title: 'Settings',               sub: 'Dealer profile & account' },
+  'profile':       { pageId: 'profile',     title: 'Profile',                sub: 'Your account details' },
+  // 'agents':         { pageId: 'agents',         title: 'Agents',           sub: '' },
+  // 'billing':        { pageId: 'billing',         title: 'Billing',          sub: '' },
+  // 'integrations':   { pageId: 'integrations',    title: 'Integrations',     sub: '' },
+  // 'team-members':   { pageId: 'team-members',    title: 'Team Members',     sub: '' },
+  // 'ai-preferences': { pageId: 'ai-preferences',  title: 'AI Preferences',   sub: '' },
+};
+
 async function getSession() {
   const { data: { session } } = await supa.auth.getSession();
   return session;

@@ -371,7 +371,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 <div class="app">
   <!-- ── SIDEBAR ─────────────────────────────────────────── -->
   <aside class="sidebar">
-    <div class="sb-logo" style="cursor:pointer" onclick="goTo('dashboard',document.querySelector('.sb-item'))">
+    <div class="sb-logo" style="cursor:pointer" onclick="goTo('dashboard')">
       <div class="sb-logo-mark">AA</div>
       <div>
         <div class="sb-logo-text">Auto <span>AI</span></div>
@@ -384,17 +384,17 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     </div>
     <nav class="sb-nav">
       <div class="sb-section">Overview</div>
-      <div class="sb-item active" data-page="dashboard" onclick="goTo('dashboard',this)">Dashboard</div>
+      <div class="sb-item active" data-page="dashboard" onclick="goTo('dashboard')">Dashboard</div>
       <div class="sb-section">Conversations</div>
-      <div class="sb-item" data-page="inbox" onclick="goTo('inbox',this)">Smart Inbox <span class="sb-badge">5</span></div>
-      <div class="sb-item" data-page="todo" onclick="goTo('todo',this)">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
+      <div class="sb-item" data-page="smart-inbox" onclick="goTo('smart-inbox')">Smart Inbox <span class="sb-badge">5</span></div>
+      <div class="sb-item" data-page="action-center" onclick="goTo('action-center')">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
       <div class="sb-section">Business</div>
-      <div class="sb-item" data-page="bookings" onclick="goTo('bookings',this)">Test Drives</div>
-      <div class="sb-item" data-page="missed" onclick="goTo('missed',this)">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
-      <div class="sb-item" data-page="performance" onclick="goTo('performance',this)">Performance</div>
+      <div class="sb-item" data-page="test-drives" onclick="goTo('test-drives')">Test Drives</div>
+      <div class="sb-item" data-page="missed-calls" onclick="goTo('missed-calls')">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
+      <div class="sb-item" data-page="performance" onclick="goTo('performance')">Performance</div>
       <div class="sb-section">Account</div>
-      <div class="sb-item" data-page="settings" onclick="goTo('settings',this)">⚙️ Settings</div>
-      <div class="sb-item" data-page="profile" onclick="goTo('profile',this)">👤 Profile</div>
+      <div class="sb-item" data-page="settings" onclick="goTo('settings')">⚙️ Settings</div>
+      <div class="sb-item" data-page="profile" onclick="goTo('profile')">👤 Profile</div>
     </nav>
   </aside>
 
@@ -799,33 +799,38 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 </div>
 
 <script>
-const pages = {
-  dashboard:   { title: 'Dashboard', sub: '' },
-  inbox:       { title: 'Smart Inbox', sub: 'Active accounts structure' },
-  todo:        { title: 'Action Center', sub: 'Actions tracking queue' },
-  bookings:    { title: 'Test Drive Bookings', sub: 'Complete booking ledger' },
-  missed:      { title: 'Missed Calls Recovered', sub: 'Recovery system analytics' },
-  performance: { title: 'Performance', sub: 'Account diagnostics engine' },
-  settings:    { title: 'Settings', sub: 'Dealer profile & account' },
-  profile:     { title: 'Profile', sub: 'Your account details' }
-};
-
-const HASH_IDS = { dashboard:'dashboard', inbox:'smart-inbox', todo:'action-center', bookings:'test-drives', missed:'missed-calls', performance:'performance', settings:'settings', profile:'profile' };
-const ID_FROM_HASH = Object.fromEntries(Object.entries(HASH_IDS).map(([k,v])=>[v,k]));
-
-function goTo(id, el) {
+// ── Router — ROUTES (app.js) is the sole source of truth ──────────────
+function activatePage(hash) {
+  const route = ROUTES[hash];
+  if (!route) return activatePage('dashboard');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + id)?.classList.add('active');
+  document.getElementById('page-' + route.pageId)?.classList.add('active');
   document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
-  const target = el || document.querySelector('.sb-item[data-page="' + id + '"]');
-  if (target) target.classList.add('active');
-  document.getElementById('page-title').textContent = pages[id]?.title || id;
-  document.getElementById('page-sub').textContent = pages[id]?.sub || '';
-  history.replaceState(null, '', '#' + (HASH_IDS[id] || id));
-
-  if (window.isDemoActive) applyDemoUIData(id);
-  if (id === 'profile' && typeof loadProfilePage === 'function') loadProfilePage();
+  document.querySelector('.sb-item[data-page="' + hash + '"]')?.classList.add('active');
+  document.getElementById('page-title').textContent = route.title;
+  document.getElementById('page-sub').textContent = route.sub;
+  if (window.isDemoActive) applyDemoUIData(route.pageId);
+  if (route.pageId === 'profile' && typeof loadProfilePage === 'function') loadProfilePage();
 }
+
+function goTo(hash) {
+  if (window.location.hash.slice(1) === hash) { activatePage(hash); return; }
+  window.location.hash = hash;
+}
+
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.slice(1);
+  if (hash.includes('access_token')) return;
+  activatePage(ROUTES[hash] ? hash : 'dashboard');
+});
+
+(function initFromHash() {
+  const raw = window.location.hash.slice(1);
+  if (raw.includes('access_token')) return;
+  const hash = ROUTES[raw] ? raw : 'dashboard';
+  if (!ROUTES[raw]) history.replaceState(null, '', '#dashboard');
+  activatePage(hash);
+})();
 
 function openDpForm() {
   const form = document.getElementById('dp-form-section');
@@ -863,18 +868,6 @@ function togglePwForm() {
     if (s) { s.textContent = ''; s.className = 'form-status'; }
   }
 }
-
-window.addEventListener('hashchange', () => {
-  const raw = window.location.hash.slice(1);
-  if (raw.includes('access_token')) return;
-  goTo(ID_FROM_HASH[raw] || 'dashboard', null);
-});
-
-(function initFromHash() {
-  const raw = window.location.hash.slice(1);
-  if (raw.includes('access_token')) return;
-  goTo(ID_FROM_HASH[raw] || 'dashboard', null);
-})();
 
 function applyDemoUIData(pageId) {
   if (pageId === 'dashboard') {
