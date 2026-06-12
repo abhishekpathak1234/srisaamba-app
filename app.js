@@ -255,19 +255,62 @@ function toggleEditProfile() {
   if (note) note.style.display = note.style.display === 'none' ? 'block' : 'none';
 }
 
-async function changePassword() {
-  const newPassword = prompt('Enter new password (minimum 8 characters):');
-  if (newPassword === null) return;
+async function handleSecurePasswordChange() {
+  const currentPassword = document.getElementById('pw-current')?.value || '';
+  const newPassword     = document.getElementById('pw-new')?.value     || '';
+  const confirmPassword = document.getElementById('pw-confirm')?.value || '';
+  const btn    = document.getElementById('pw-save-btn');
+  const status = document.getElementById('pw-status');
+
+  const setStatus = (msg, type) => {
+    if (status) { status.textContent = msg; status.className = 'form-status' + (type ? ' ' + type : ''); }
+  };
+
+  setStatus('', '');
+
   if (newPassword.length < 8) {
-    alert('Password must be at least 8 characters.');
+    setStatus('New password must be at least 8 characters.', 'error');
     return;
   }
-  const { error } = await supa.auth.updateUser({ password: newPassword });
-  if (error) {
-    alert('Password update failed: ' + error.message);
-  } else {
-    alert('Password updated successfully.');
+  if (newPassword !== confirmPassword) {
+    setStatus('New passwords do not match.', 'error');
+    return;
   }
+
+  const session = await getSession();
+  if (!session?.user?.email) {
+    setStatus('Session expired. Please sign in again.', 'error');
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Verifying…'; }
+
+  const { error: verifyErr } = await supa.auth.signInWithPassword({
+    email: session.user.email,
+    password: currentPassword,
+  });
+
+  if (verifyErr) {
+    setStatus('Current password is incorrect.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
+    return;
+  }
+
+  if (btn) btn.textContent = 'Updating…';
+
+  const { error: updateErr } = await supa.auth.updateUser({ password: newPassword });
+
+  if (updateErr) {
+    setStatus('Update failed: ' + updateErr.message, 'error');
+  } else {
+    setStatus('Password updated successfully.', 'success');
+    ['pw-current', 'pw-new', 'pw-confirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+  }
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
 }
 
 /* ── Dealer Profile update (strictly scoped to currentDealership.id) ── */

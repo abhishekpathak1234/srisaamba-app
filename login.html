@@ -176,6 +176,10 @@
 
   <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
 
+  <div style="text-align:right;margin-top:-4px;margin-bottom:10px;">
+    <a id="forgot-link" style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;text-decoration:none;" onclick="handleForgotPassword()">Forgot Password?</a>
+  </div>
+
   <div class="divider">or</div>
 
   <button class="google" onclick="loginWithGoogle()">
@@ -258,6 +262,23 @@
         setMessage('Account created! Check your email to confirm, then sign in.', 'success');
         toggleMode();
       }
+    }
+  }
+
+  async function handleForgotPassword() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+      setMessage('Enter your email address first.', 'error');
+      return;
+    }
+    setMessage('Sending reset link…', '');
+    const { error } = await supa.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/reset-password.html'
+    });
+    if (error) {
+      setMessage(error.message, 'error');
+    } else {
+      setMessage('Password reset link sent. Check your email.', 'success');
     }
   }
 
