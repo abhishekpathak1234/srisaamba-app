@@ -526,37 +526,89 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     <!-- PROFILE PANEL -->
     <div class="page" id="page-profile">
       <div class="page-content">
-        <div class="panel" style="padding:24px 28px;max-width:640px;">
+        <div class="panel" style="padding:24px 28px;max-width:720px;">
+
+          <!-- User Information -->
           <div class="settings-section">
-            <div class="settings-section-title">Your Account</div>
+            <div class="settings-section-title">User Information</div>
             <div class="form-grid">
               <div class="form-field" style="grid-column:1/-1">
                 <span class="form-label">User Email</span>
                 <span id="prof-email" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
               </div>
               <div class="form-field">
-                <span class="form-label">Role</span>
-                <span id="prof-role" style="font-size:14px;color:var(--ink);padding:4px 0;">Member</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">Dealership</span>
-                <span id="prof-dealer" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+                <span class="form-label">Membership Role</span>
+                <span id="prof-role" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
               </div>
               <div class="form-field">
                 <span class="form-label">Account Created</span>
                 <span id="prof-created" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
               </div>
+            </div>
+          </div>
+
+          <!-- Dealership Information -->
+          <div class="settings-section">
+            <div class="settings-section-title">Dealership Information</div>
+            <div class="form-grid">
+              <div class="form-field" style="grid-column:1/-1">
+                <span class="form-label">Dealership Name</span>
+                <span id="prof-dealer" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+              <div class="form-field" style="grid-column:1/-1">
+                <span class="form-label">Tagline</span>
+                <span id="prof-tagline" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+              <div class="form-field" style="grid-column:1/-1">
+                <span class="form-label">Company Email</span>
+                <span id="prof-contact-email" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Address Information -->
+          <div class="settings-section">
+            <div class="settings-section-title">Address Information</div>
+            <div class="form-grid">
+              <div class="form-field" style="grid-column:1/-1">
+                <span class="form-label">Street Address</span>
+                <span id="prof-street" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+              <div class="form-field">
+                <span class="form-label">City</span>
+                <span id="prof-city" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+              <div class="form-field">
+                <span class="form-label">State</span>
+                <span id="prof-state" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+              <div class="form-field">
+                <span class="form-label">ZIP Code</span>
+                <span id="prof-zip" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+              <div class="form-field">
+                <span class="form-label">Country</span>
+                <span id="prof-country" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Regional Information -->
+          <div class="settings-section">
+            <div class="settings-section-title">Regional Information</div>
+            <div class="form-grid">
               <div class="form-field">
                 <span class="form-label">Timezone</span>
                 <span id="prof-timezone" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
               </div>
             </div>
-            <div class="form-actions" style="margin-top:24px;">
-              <button class="btn-primary" onclick="toggleEditProfile()">Edit Profile</button>
-              <button class="tb-btn ghost" disabled title="Password changes are managed by your administrator" style="cursor:not-allowed;opacity:.5;">Change Password</button>
-            </div>
-            <div id="prof-edit-note" style="display:none;margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--ink2);font-family:var(--mono);">To update dealership details, visit ⚙️ Settings.</div>
           </div>
+
+          <div class="form-actions" style="margin-top:8px;">
+            <button class="btn-primary" onclick="toggleEditProfile()">Edit Profile</button>
+            <button class="tb-btn ghost" onclick="changePassword()">Change Password</button>
+          </div>
+          <div id="prof-edit-note" style="display:none;margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--ink2);font-family:var(--mono);">To update dealership details, visit ⚙️ Settings.</div>
         </div>
       </div>
     </div>

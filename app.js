@@ -230,8 +230,15 @@ window.loadLiveData = async function (dealerId) {
 async function loadProfilePage() {
   const d = window.currentDealership;
   if (d) {
-    setText('prof-dealer',  d.name    || '—');
-    setText('prof-timezone', d.timezone || '—');
+    setText('prof-dealer',        d.name          || '—');
+    setText('prof-tagline',       d.tagline        || '—');
+    setText('prof-contact-email', d.contact_email  || '—');
+    setText('prof-street',        d.street_address || '—');
+    setText('prof-city',          d.city           || '—');
+    setText('prof-state',         d.state          || '—');
+    setText('prof-zip',           d.zip_code       || '—');
+    setText('prof-country',       d.country        || '—');
+    setText('prof-timezone',      d.timezone       || '—');
   }
   const session = await getSession();
   if (session?.user) {
@@ -246,6 +253,21 @@ async function loadProfilePage() {
 function toggleEditProfile() {
   const note = document.getElementById('prof-edit-note');
   if (note) note.style.display = note.style.display === 'none' ? 'block' : 'none';
+}
+
+async function changePassword() {
+  const newPassword = prompt('Enter new password (minimum 8 characters):');
+  if (newPassword === null) return;
+  if (newPassword.length < 8) {
+    alert('Password must be at least 8 characters.');
+    return;
+  }
+  const { error } = await supa.auth.updateUser({ password: newPassword });
+  if (error) {
+    alert('Password update failed: ' + error.message);
+  } else {
+    alert('Password updated successfully.');
+  }
 }
 
 /* ── Dealer Profile update (strictly scoped to currentDealership.id) ── */
