@@ -245,6 +245,28 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .form-status.success { color: var(--green); }
 .form-status.error { color: var(--red); }
 
+/* ── PROFILE PAGE ─────────────────────────────────────────── */
+.prof-header { margin-bottom: 20px; }
+.prof-header-title { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+.prof-header-sub { font-size: 13px; color: var(--ink3); margin-top: 4px; font-family: var(--mono); }
+.prof-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 22px 24px; margin-bottom: 14px; }
+.prof-card-head { display: flex; align-items: center; gap: 14px; padding-bottom: 16px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+.prof-card-icon { font-size: 17px; width: 38px; height: 38px; background: var(--surface2); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.prof-card-title { font-size: 14px; font-weight: 700; }
+.prof-card-desc { font-size: 11px; color: var(--ink3); font-family: var(--mono); margin-top: 2px; }
+.prof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
+@media(max-width:640px){ .prof-grid { grid-template-columns: 1fr; } }
+.prof-field { display: flex; flex-direction: column; gap: 4px; }
+.prof-field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink3); font-family: var(--mono); }
+.prof-field-value { font-size: 14px; color: var(--ink); font-weight: 500; line-height: 1.4; }
+.prof-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:640px){ .prof-action-grid { grid-template-columns: 1fr; } }
+.prof-action-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; }
+.prof-action-icon { font-size: 20px; margin-bottom: 8px; }
+.prof-action-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.prof-action-desc { font-size: 12px; color: var(--ink2); line-height: 1.6; flex: 1; }
+.prof-action-card .btn-primary { width: fit-content; margin-top: 16px; }
+
 /* ── SETTINGS HUB ────────────────────────────────────────── */
 .settings-hub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 @media(max-width:900px){ .settings-hub-grid { grid-template-columns: 1fr 1fr; } }
@@ -550,97 +572,128 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 
     <!-- PROFILE PANEL -->
     <div class="page" id="page-profile">
-      <div class="page-content">
-        <div class="panel" style="padding:24px 28px;max-width:720px;">
+      <div class="page-content" style="max-width:860px;">
 
-          <!-- User Information -->
-          <div class="settings-section">
-            <div class="settings-section-title">User Information</div>
-            <div class="form-grid">
-              <div class="form-field" style="grid-column:1/-1">
-                <span class="form-label">User Email</span>
-                <span id="prof-email" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">Membership Role</span>
-                <span id="prof-role" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">Account Created</span>
-                <span id="prof-created" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
+        <!-- Page header -->
+        <div class="prof-header">
+          <div class="prof-header-title">Profile</div>
+          <div class="prof-header-sub">Manage your account information and security.</div>
+        </div>
+
+        <!-- Section A: Account Overview -->
+        <div class="prof-card">
+          <div class="prof-card-head">
+            <div class="prof-card-icon">👤</div>
+            <div>
+              <div class="prof-card-title">Account Overview</div>
+              <div class="prof-card-desc">Your personal account details</div>
             </div>
           </div>
-
-          <!-- Dealership Information -->
-          <div class="settings-section">
-            <div class="settings-section-title">Dealership Information</div>
-            <div class="form-grid">
-              <div class="form-field" style="grid-column:1/-1">
-                <span class="form-label">Dealership Name</span>
-                <span id="prof-dealer" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field" style="grid-column:1/-1">
-                <span class="form-label">Tagline</span>
-                <span id="prof-tagline" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field" style="grid-column:1/-1">
-                <span class="form-label">Company Email</span>
-                <span id="prof-contact-email" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
+          <div class="prof-grid">
+            <div class="prof-field" style="grid-column:1/-1">
+              <span class="prof-field-label">User Email</span>
+              <span class="prof-field-value" id="prof-email">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Membership Role</span>
+              <span class="prof-field-value" id="prof-role">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Member Since</span>
+              <span class="prof-field-value" id="prof-created">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Timezone</span>
+              <span class="prof-field-value" id="prof-timezone">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Last Login</span>
+              <span class="prof-field-value" id="prof-last-login">—</span>
             </div>
           </div>
+        </div>
 
-          <!-- Address Information -->
-          <div class="settings-section">
-            <div class="settings-section-title">Address Information</div>
-            <div class="form-grid">
-              <div class="form-field" style="grid-column:1/-1">
-                <span class="form-label">Street Address</span>
-                <span id="prof-street" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">City</span>
-                <span id="prof-city" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">State</span>
-                <span id="prof-state" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">ZIP Code</span>
-                <span id="prof-zip" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
-              <div class="form-field">
-                <span class="form-label">Country</span>
-                <span id="prof-country" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
+        <!-- Section B: Dealership Overview -->
+        <div class="prof-card">
+          <div class="prof-card-head">
+            <div class="prof-card-icon">🏪</div>
+            <div>
+              <div class="prof-card-title">Dealership Overview</div>
+              <div class="prof-card-desc">Your dealership details on file</div>
             </div>
           </div>
-
-          <!-- Regional Information -->
-          <div class="settings-section">
-            <div class="settings-section-title">Regional Information</div>
-            <div class="form-grid">
-              <div class="form-field">
-                <span class="form-label">Timezone</span>
-                <span id="prof-timezone" style="font-size:14px;color:var(--ink);padding:4px 0;">—</span>
-              </div>
+          <div class="prof-grid">
+            <div class="prof-field">
+              <span class="prof-field-label">Dealership Name</span>
+              <span class="prof-field-value" id="prof-dealer">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Tagline</span>
+              <span class="prof-field-value" id="prof-tagline">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Company Email</span>
+              <span class="prof-field-value" id="prof-contact-email">—</span>
+            </div>
+            <div class="prof-field" style="grid-column:1/-1">
+              <span class="prof-field-label">Street Address</span>
+              <span class="prof-field-value" id="prof-street">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">City</span>
+              <span class="prof-field-value" id="prof-city">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">State</span>
+              <span class="prof-field-value" id="prof-state">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">ZIP Code</span>
+              <span class="prof-field-value" id="prof-zip">—</span>
+            </div>
+            <div class="prof-field">
+              <span class="prof-field-label">Country</span>
+              <span class="prof-field-value" id="prof-country">—</span>
             </div>
           </div>
+        </div>
 
-          <div class="form-actions" style="margin-top:8px;">
-            <button class="btn-primary" onclick="toggleEditProfile()">Edit Profile</button>
+        <!-- Section C: Account Actions -->
+        <div class="prof-card">
+          <div class="prof-card-head">
+            <div class="prof-card-icon">⚡</div>
+            <div>
+              <div class="prof-card-title">Account Actions</div>
+              <div class="prof-card-desc">Manage your profile and security settings</div>
+            </div>
           </div>
-          <div id="prof-edit-note" style="display:none;margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:var(--radius-sm);font-size:12px;color:var(--ink2);font-family:var(--mono);">To update dealership details, visit ⚙️ Settings.</div>
+          <div class="prof-action-grid">
+            <div class="prof-action-card">
+              <div class="prof-action-icon">🏪</div>
+              <div class="prof-action-title">Edit Dealership Profile</div>
+              <div class="prof-action-desc">Update dealership information, address, branding, and preferences.</div>
+              <button class="btn-primary" onclick="window.location.hash='settings'">Edit Profile</button>
+            </div>
+            <div class="prof-action-card">
+              <div class="prof-action-icon">🔐</div>
+              <div class="prof-action-title">Security Settings</div>
+              <div class="prof-action-desc">Manage your password and account security.</div>
+              <button class="btn-primary" id="pw-toggle-btn" onclick="togglePwForm()">Change Password</button>
+            </div>
+          </div>
+        </div>
 
-          <!-- Change Password (collapsible) -->
-          <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border);">
-            <button class="btn-primary" id="pw-toggle-btn" onclick="togglePwForm()">Change Password</button>
-          </div>
-          <div id="pw-expand" style="display:none;margin-top:16px;">
-            <div class="settings-section-title">Change Password</div>
-            <div class="form-grid" style="margin-top:10px;">
+        <!-- Section D: Password Change (collapsible) -->
+        <div id="pw-expand" style="display:none;">
+          <div class="prof-card">
+            <div class="prof-card-head">
+              <div class="prof-card-icon">🔑</div>
+              <div>
+                <div class="prof-card-title">Change Password</div>
+                <div class="prof-card-desc">Enter your current password to set a new one.</div>
+              </div>
+            </div>
+            <div class="form-grid" style="max-width:560px;">
               <div class="form-field" style="grid-column:1/-1">
                 <label class="form-label" for="pw-current">Current Password</label>
                 <input class="form-input" type="password" id="pw-current" placeholder="Enter current password" autocomplete="current-password">
@@ -654,13 +707,14 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
                 <input class="form-input" type="password" id="pw-confirm" placeholder="Repeat new password" autocomplete="new-password">
               </div>
             </div>
-            <div class="form-actions" style="margin-top:12px;">
+            <div class="form-actions" style="margin-top:16px;">
               <button class="btn-primary" id="pw-save-btn" onclick="handleSecurePasswordChange()">Update Password</button>
               <button class="tb-btn ghost" onclick="togglePwForm()">Cancel</button>
               <span class="form-status" id="pw-status"></span>
             </div>
           </div>
         </div>
+
       </div>
     </div>
 

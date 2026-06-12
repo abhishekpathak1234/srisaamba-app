@@ -266,6 +266,10 @@ async function loadProfilePage() {
     setText('prof-created', raw
       ? new Date(raw).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       : '—');
+    const lastLogin = session.user.last_sign_in_at;
+    setText('prof-last-login', lastLogin
+      ? new Date(lastLogin).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : '—');
   }
 }
 
