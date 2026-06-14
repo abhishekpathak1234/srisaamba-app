@@ -296,6 +296,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .cal-view-tabs { display:flex; gap:2px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:3px; margin-left:auto; }
 .cal-vtab { padding:5px 16px; border-radius:4px; font-size:12px; font-weight:600; color:var(--ink3); transition:all .15s; cursor:pointer; }
 .cal-vtab.active { background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+.cal-today-dot { display:inline-block; width:5px; height:5px; border-radius:50%; background:var(--orange); margin-left:3px; vertical-align:middle; position:relative; top:-1px; }
 
 /* Appointment card — day view */
 .appt-card { display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; border-left:3px solid var(--orange); transition:box-shadow .15s; cursor:pointer; }
@@ -707,7 +708,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             <button class="tb-btn ghost" onclick="calGoToday()" style="font-size:11px;padding:5px 12px;margin-left:4px;">Today</button>
           </div>
           <div class="cal-view-tabs">
-            <button class="cal-vtab" data-v="today" onclick="calSetView('today')">Day</button>
+            <button class="cal-vtab" data-v="today" onclick="calSetView('today')">Day <span class="cal-today-dot"></span></button>
             <button class="cal-vtab" data-v="week" onclick="calSetView('week')">Week</button>
             <button class="cal-vtab active" data-v="month" onclick="calSetView('month')">Month</button>
           </div>
