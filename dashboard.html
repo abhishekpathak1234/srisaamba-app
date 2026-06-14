@@ -1264,13 +1264,6 @@ async function saveTestDrive() {
     return;
   }
 
-  // Async customer stub — does not block UX
-  const parts = customerName.split(' ');
-  supa.from('customers').insert({
-    dealer_id: dealerId, first_name: parts[0] || customerName,
-    last_name: parts.slice(1).join(' ') || '', phone: phone || null, status: 'new',
-  }).select('id').maybeSingle().then(() => {});
-
   // Show success state
   document.getElementById('td-success').style.display = '';
   document.getElementById('td-form-fields').style.display = 'none';
@@ -1333,7 +1326,8 @@ const _calFmtTime  = ts => new Date(ts).toLocaleTimeString('en-US', { hour:'nume
 const _calCustName = a => {
   if (a.customer_name) return a.customer_name;
   const c = a.customers;
-  return c ? (((c.first_name||'') + ' ' + (c.last_name||'')).trim() || 'Unknown') : 'Unknown';
+  const joined = c ? (((c.first_name||'') + ' ' + (c.last_name||'')).trim()) : '';
+  return joined || _typeLabel(a.appointment_type) || 'Appointment';
 };
 const _typeClass = t => t === 'service' ? 's-svc' : t === 'trade_in_inspection' ? 's-trd' : '';
 const _typeLabel = t => t === 'test_drive' ? 'Test Drive' : t === 'service' ? 'Service' : 'Trade-in';
@@ -1469,9 +1463,9 @@ function _renderCalMonth() {
     const shown = dayAppts.slice(0, 3);
     const more  = dayAppts.length - shown.length;
     const evts  = shown.map(a => {
-      const tc = _typeClass(a.appointment_type);
-      const first = (a.customers?.first_name) || 'Appt';
-      return `<div class="cal-month-evt ${tc}" onclick="_calJumpDay('${iso}')" title="${escHtml(_calCustName(a))}">${escHtml(first)}</div>`;
+      const tc    = _typeClass(a.appointment_type);
+      const label = _calCustName(a).split(' ')[0];
+      return `<div class="cal-month-evt ${tc}" onclick="_calJumpDay('${iso}')" title="${escHtml(_calCustName(a))}">${escHtml(label)}</div>`;
     }).join('');
     const moreEl = more > 0 ? `<div class="cal-month-more" onclick="_calJumpDay('${iso}')">+${more} more</div>` : '';
 
@@ -1629,14 +1623,6 @@ async function saveAppt() {
       source:      'manual',
       ...payload,
     }));
-    // Async customer stub — does not block save speed
-    if (!error) {
-      const parts = customerName.split(' ');
-      supa.from('customers').insert({
-        dealer_id: dealerId, first_name: parts[0] || customerName,
-        last_name: parts.slice(1).join(' ') || '', phone: phone || null, status: 'new',
-      }).select('id').maybeSingle().then(() => {});
-    }
   }
 
   _saving = false;
@@ -1649,7 +1635,7 @@ async function saveAppt() {
   } else {
     closeApptModal();
     showToast(isEdit ? 'Appointment updated.' : 'Appointment saved.');
-    await loadCalendarData(dealerId);
+    try { await loadCalendarData(dealerId); } catch (_) {}
   }
 }
 </script>
