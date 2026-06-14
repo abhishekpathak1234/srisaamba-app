@@ -707,9 +707,9 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             <button class="tb-btn ghost" onclick="calGoToday()" style="font-size:11px;padding:5px 12px;margin-left:4px;">Today</button>
           </div>
           <div class="cal-view-tabs">
-            <button class="cal-vtab active" data-v="today" onclick="calSetView('today')">Day</button>
+            <button class="cal-vtab" data-v="today" onclick="calSetView('today')">Day</button>
             <button class="cal-vtab" data-v="week" onclick="calSetView('week')">Week</button>
-            <button class="cal-vtab" data-v="month" onclick="calSetView('month')">Month</button>
+            <button class="cal-vtab active" data-v="month" onclick="calSetView('month')">Month</button>
           </div>
           <button class="btn-primary" onclick="openApptModal()" style="margin-left:auto;">+ New Appointment</button>
         </div>
@@ -1026,8 +1026,11 @@ function activatePage(hash) {
   }
   if (window.isDemoActive) applyDemoUIData(route.pageId);
   if (route.pageId === 'profile'       && typeof loadProfilePage       === 'function') loadProfilePage();
-  if (route.pageId === 'calendar'      && typeof loadCalendarData      === 'function' && window.currentDealership?.id) {
-    loadCalendarData(window.currentDealership.id);
+  if (route.pageId === 'calendar' && window.currentDealership?.id) {
+    // Sidebar reset: close any open modals, clear editing state, reset to month view
+    if (typeof closeApptModal === 'function') closeApptModal();
+    if (typeof closeTdModal   === 'function') closeTdModal();
+    if (typeof loadCalendarData === 'function') loadCalendarData(window.currentDealership.id);
   }
   if (route.pageId === 'today-activity' && typeof loadTodayActivityPage === 'function') {
     loadTodayActivityPage();
@@ -1360,7 +1363,7 @@ async function saveTestDrive() {
 <!-- ── CALENDAR JAVASCRIPT ───────────────────────────────────── -->
 <script>
 // ── State ────────────────────────────────────────────────────────
-let _calView = 'today';
+let _calView = 'month';
 let _calDate = new Date();
 let _calAppts = [];
 
@@ -1372,7 +1375,7 @@ async function loadCalendarData(dealerId) {
     .eq('dealer_id', dealerId)
     .order('scheduled_at');
   _calAppts = data || [];
-  renderCalendar();
+  calSetView(_calView);  // properly toggles display + active tab + renders
 }
 
 // ── View switching ────────────────────────────────────────────────
