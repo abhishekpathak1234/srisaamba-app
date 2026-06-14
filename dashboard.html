@@ -479,6 +479,12 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     document.getElementById('sb-dealer-name').textContent = d.name;
     const today = new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     document.getElementById('page-sub').textContent = today + ' · ' + d.name;
+    // initFromHash() fires before auth resolves — if calendar is already the active
+    // page when the dealership becomes available, load its data now.
+    const activeHash = window.location.hash.slice(1);
+    if (activeHash === 'calendar' && typeof loadCalendarData === 'function') {
+      loadCalendarData(d.id);
+    }
   }
 </script>
 
