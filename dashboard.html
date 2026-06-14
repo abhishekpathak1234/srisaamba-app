@@ -310,6 +310,18 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .appt-type-label { background:var(--surface2); padding:2px 8px; border-radius:99px; font-size:10px; font-weight:700; font-family:var(--mono); color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; }
 .appt-assignee { font-size:11px; color:var(--ink3); font-family:var(--mono); }
 .appt-status-col { display:flex; align-items:flex-start; padding-top:2px; flex-shrink:0; }
+.appt-actions { display:flex; flex-direction:column; gap:4px; padding-top:1px; margin-left:2px; }
+.appt-act-btn { width:24px; height:24px; border-radius:var(--radius-sm); background:var(--surface2); border:1px solid var(--border); font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .15s; }
+.appt-act-btn:hover { background:var(--surface3); }
+.appt-act-btn.del:hover { background:var(--red-s); border-color:rgba(192,43,43,.25); }
+/* Toast notifications */
+.toast-wrap { position:fixed; bottom:20px; right:20px; z-index:500; display:flex; flex-direction:column-reverse; gap:8px; pointer-events:none; }
+.toast { padding:12px 18px; border-radius:var(--radius); font-size:13px; font-weight:600; color:#fff; animation:toastIn .2s ease; }
+.toast.t-success { background:var(--green); }
+.toast.t-error   { background:var(--red); }
+.toast.fade-out  { animation:toastOut .3s ease forwards; }
+@keyframes toastIn  { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:none} }
+@keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateX(8px)} }
 
 /* Day view chrome */
 .cal-day-header { padding:0 0 14px; border-bottom:1px solid var(--border); margin-bottom:18px; }
@@ -1205,7 +1217,9 @@ function closeTdModal() {
   const st = document.getElementById('td-status'); if (st) st.selectedIndex = 0;
 }
 
+let _tdSaving = false;
 async function saveTestDrive() {
+  if (_tdSaving) return;
   const dealerId = window.currentDealership?.id;
   if (!dealerId) return;
   const btn = document.getElementById('td-save-btn');
@@ -1224,23 +1238,15 @@ async function saveTestDrive() {
     return;
   }
 
+  _tdSaving = true;
   btn.disabled = true; btn.textContent = 'Booking…';
   msg.textContent = '';
 
-  // Create a lightweight customer stub scoped to this dealership
-  const nameParts = customerName.split(' ');
-  const { data: cust } = await supa.from('customers').insert({
-    dealer_id:  dealerId,
-    first_name: nameParts[0] || customerName,
-    last_name:  nameParts.slice(1).join(' ') || '',
-    phone:      phone || null,
-    status:     'new',
-  }).select('id').maybeSingle();
-
-  // Insert appointment — source='test_drive_sync' flags this as Calendar-synced
+  // Insert appointment immediately — customer stub created async for speed
   const { error } = await supa.from('appointments').insert({
     dealer_id:        dealerId,
-    customer_id:      cust?.id || null,
+    customer_id:      null,
+    customer_name:    customerName,
     appointment_type: 'test_drive',
     vehicle:          vehicle   || null,
     scheduled_at:     new Date(dt).toISOString(),
@@ -1249,12 +1255,21 @@ async function saveTestDrive() {
     source:           'test_drive_sync',
   });
 
+  _tdSaving = false;
+
   if (error) {
     msg.textContent = 'Save failed: ' + error.message;
     msg.className = 'form-status error';
     btn.disabled = false; btn.textContent = 'Book & Sync to Calendar';
     return;
   }
+
+  // Async customer stub — does not block UX
+  const parts = customerName.split(' ');
+  supa.from('customers').insert({
+    dealer_id: dealerId, first_name: parts[0] || customerName,
+    last_name: parts.slice(1).join(' ') || '', phone: phone || null, status: 'new',
+  }).select('id').maybeSingle().then(() => {});
 
   // Show success state
   document.getElementById('td-success').style.display = '';
@@ -1316,6 +1331,7 @@ function renderCalendar() {
 // ── Helpers ───────────────────────────────────────────────────────
 const _calFmtTime  = ts => new Date(ts).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
 const _calCustName = a => {
+  if (a.customer_name) return a.customer_name;
   const c = a.customers;
   return c ? (((c.first_name||'') + ' ' + (c.last_name||'')).trim() || 'Unknown') : 'Unknown';
 };
@@ -1335,7 +1351,7 @@ function _apptCard(a) {
   const pill = APPT_PILL[a.status] || `<span class="badge-pill">${escHtml(a.status)}</span>`;
   const assignee = a.assigned_to_name
     ? `<span class="appt-assignee">· ${escHtml(a.assigned_to_name)}</span>` : '';
-  return `<div class="appt-card ${borderCls}">
+  return `<div class="appt-card ${borderCls}" data-id="${a.id}">
     <div class="appt-time-col">${_calFmtTime(a.scheduled_at)}</div>
     <div class="appt-body">
       <div class="appt-name">${escHtml(name)}</div>
@@ -1346,6 +1362,10 @@ function _apptCard(a) {
       </div>
     </div>
     <div class="appt-status-col">${pill}</div>
+    <div class="appt-actions">
+      <button class="appt-act-btn" onclick="editAppt('${a.id}')" title="Edit">✏</button>
+      <button class="appt-act-btn del" onclick="deleteAppt('${a.id}')" title="Delete">✕</button>
+    </div>
   </div>`;
 }
 
@@ -1477,18 +1497,79 @@ function _calJumpDay(iso) {
   calSetView('today');
 }
 
+// ── Modal state ───────────────────────────────────────────────────
+let _editingApptId = null;
+let _saving = false;
+
+function showToast(msg, type) {
+  type = type || 'success';
+  let wrap = document.getElementById('toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'toast-wrap';
+    wrap.className = 'toast-wrap';
+    document.body.appendChild(wrap);
+  }
+  const t = document.createElement('div');
+  t.className = 'toast t-' + type;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => { t.classList.add('fade-out'); setTimeout(() => t.remove(), 320); }, 2700);
+}
+
+function editAppt(id) {
+  const appt = _calAppts.find(a => a.id === id);
+  if (appt) openApptModal(appt);
+}
+
+async function deleteAppt(id) {
+  if (!confirm('Delete this appointment?')) return;
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) return;
+  const { error } = await supa.from('appointments')
+    .delete().eq('id', id).eq('dealer_id', dealerId);
+  if (error) {
+    showToast('Delete failed: ' + error.message, 'error');
+  } else {
+    _calAppts = _calAppts.filter(a => a.id !== id);
+    renderCalendar();
+    showToast('Appointment deleted.');
+  }
+}
+
 // ── Modal ─────────────────────────────────────────────────────────
-function openApptModal() {
-  const now = new Date();
-  now.setMinutes(0, 0, 0);
-  now.setHours(now.getHours() + 1);
-  const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-  document.getElementById('am-datetime').value = localIso;
+function openApptModal(appt) {
+  _editingApptId = appt ? appt.id : null;
+  const titleEl = document.querySelector('#appt-modal .cal-modal-title');
+  const saveBtn = document.getElementById('am-save-btn');
+  if (titleEl) titleEl.textContent = appt ? 'Edit Appointment' : 'New Appointment';
+  if (saveBtn)  saveBtn.textContent = appt ? 'Update Appointment' : 'Save Appointment';
+
+  if (appt) {
+    document.getElementById('am-customer').value = appt.customer_name || _calCustName(appt);
+    document.getElementById('am-phone').value    = appt.customers?.phone || '';
+    document.getElementById('am-vehicle').value  = appt.vehicle || '';
+    document.getElementById('am-type').value     = appt.appointment_type || 'test_drive';
+    document.getElementById('am-assigned').value = appt.assigned_to_name || '';
+    const localIso = new Date(new Date(appt.scheduled_at).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('am-datetime').value = localIso;
+    document.getElementById('am-status').value   = appt.status || 'pending';
+    document.getElementById('am-notes').value    = appt.notes || '';
+  } else {
+    ['am-customer','am-phone','am-vehicle','am-assigned','am-notes'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const sel = document.getElementById('am-type');   if (sel) sel.selectedIndex = 0;
+    const st  = document.getElementById('am-status'); if (st)  st.selectedIndex  = 0;
+    const now = new Date(); now.setMinutes(0, 0, 0); now.setHours(now.getHours() + 1);
+    document.getElementById('am-datetime').value = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
   document.getElementById('am-msg').textContent = '';
   document.getElementById('appt-modal').style.display = 'flex';
 }
 
 function closeApptModal() {
+  _editingApptId = null;
   document.getElementById('appt-modal').style.display = 'none';
   ['am-customer','am-phone','am-vehicle','am-assigned','am-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
@@ -1498,6 +1579,7 @@ function closeApptModal() {
 }
 
 async function saveAppt() {
+  if (_saving) return;
   const dealerId = window.currentDealership?.id;
   if (!dealerId) return;
   const btn = document.getElementById('am-save-btn');
@@ -1518,40 +1600,57 @@ async function saveAppt() {
     return;
   }
 
-  btn.disabled = true; btn.textContent = 'Saving…';
+  const isEdit = !!_editingApptId;
+  _saving = true;
+  btn.disabled = true;
+  btn.textContent = isEdit ? 'Updating…' : 'Saving…';
   msg.textContent = '';
 
-  // Create a lightweight customer stub scoped to this dealership
-  const nameParts = customerName.split(' ');
-  const { data: cust } = await supa.from('customers').insert({
-    dealer_id:  dealerId,
-    first_name: nameParts[0] || customerName,
-    last_name:  nameParts.slice(1).join(' ') || '',
-    phone:      phone || null,
-    status:     'new',
-  }).select('id').maybeSingle();
-
-  const { error } = await supa.from('appointments').insert({
-    dealer_id:        dealerId,
-    customer_id:      cust?.id || null,
+  const payload = {
     appointment_type: apptType,
     vehicle:          vehicle  || null,
     scheduled_at:     new Date(dt).toISOString(),
-    status:           status,
+    status,
     assigned_to_name: assigned || null,
     notes:            notes    || null,
-    source:           'manual',
-  });
+    customer_name:    customerName,
+  };
+
+  let error;
+  if (isEdit) {
+    ({ error } = await supa.from('appointments')
+      .update(payload)
+      .eq('id', _editingApptId)
+      .eq('dealer_id', dealerId));
+  } else {
+    ({ error } = await supa.from('appointments').insert({
+      dealer_id:   dealerId,
+      customer_id: null,
+      source:      'manual',
+      ...payload,
+    }));
+    // Async customer stub — does not block save speed
+    if (!error) {
+      const parts = customerName.split(' ');
+      supa.from('customers').insert({
+        dealer_id: dealerId, first_name: parts[0] || customerName,
+        last_name: parts.slice(1).join(' ') || '', phone: phone || null, status: 'new',
+      }).select('id').maybeSingle().then(() => {});
+    }
+  }
+
+  _saving = false;
+  btn.disabled = false;
+  btn.textContent = isEdit ? 'Update Appointment' : 'Save Appointment';
 
   if (error) {
     msg.textContent = 'Save failed: ' + error.message;
     msg.className = 'form-status error';
   } else {
     closeApptModal();
+    showToast(isEdit ? 'Appointment updated.' : 'Appointment saved.');
     await loadCalendarData(dealerId);
   }
-
-  btn.disabled = false; btn.textContent = 'Save Appointment';
 }
 </script>
 </body>
