@@ -310,6 +310,8 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .appt-type-label { background:var(--surface2); padding:2px 8px; border-radius:99px; font-size:10px; font-weight:700; font-family:var(--mono); color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; }
 .appt-assignee { font-size:11px; color:var(--ink3); font-family:var(--mono); }
 .appt-status-col { display:flex; align-items:flex-start; padding-top:2px; flex-shrink:0; }
+.td-phone { font-size:10px; color:var(--ink3); font-family:var(--mono); margin-top:2px; }
+.src-pill { display:inline-flex; align-items:center; font-size:10px; font-weight:700; padding:2px 8px; border-radius:99px; font-family:var(--mono); background:var(--surface2); color:var(--ink2); }
 .appt-actions { display:flex; flex-direction:column; gap:4px; padding-top:1px; margin-left:2px; }
 .appt-act-btn { width:24px; height:24px; border-radius:var(--radius-sm); background:var(--surface2); border:1px solid var(--border); font-size:11px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all .15s; }
 .appt-act-btn:hover { background:var(--surface3); }
@@ -546,7 +548,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             <div class="kpi-value" id="kpi-speed">0<span style="font-size:18px">s</span></div>
           </div>
           <div class="kpi k-blue">
-            <div class="kpi-label">After-hours leads</div>
+            <div class="kpi-label">Test drives today</div>
             <div class="kpi-value" id="kpi-afterhours" data-count="0">0</div>
           </div>
           <div class="kpi k-red">
@@ -557,12 +559,15 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 
         <div class="grid-3-1">
           <div class="panel">
-            <div class="panel-head"><div class="panel-title">Today's Test Drives</div></div>
+            <div class="panel-head">
+              <div class="panel-title">Today's Activity</div>
+              <span style="font-size:11px;font-weight:700;color:var(--orange);font-family:var(--mono);cursor:pointer" onclick="goTo('today-activity')">View all →</span>
+            </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Customer</th><th>Vehicle</th><th>Time</th><th>Status</th></tr></thead>
+                <thead><tr><th>Customer</th><th>Vehicle / Type</th><th>Time</th><th>Status</th></tr></thead>
                 <tbody id="todays-bookings-body">
-                  <tr><td colspan="4" class="empty">No test drives scheduled today</td></tr>
+                  <tr><td colspan="4" class="empty">No appointments scheduled today</td></tr>
                 </tbody>
               </table>
             </div>
@@ -572,6 +577,34 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             <div class="activity-feed" id="activity-feed">
               <div class="empty">No recent account activity logs</div>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TODAY'S ACTIVITY DETAIL PAGE -->
+    <div class="page" id="page-today-activity">
+      <div class="page-content">
+        <div class="panel">
+          <div class="panel-head">
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="tb-btn ghost" onclick="goTo('dashboard')" style="font-size:13px;padding:6px 12px">← Back</button>
+              <div>
+                <div class="panel-title">Today's Activity</div>
+                <div id="ta-stats" style="font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:2px">—</div>
+              </div>
+            </div>
+            <button class="btn-primary" onclick="openApptModal()" style="font-size:12px;padding:7px 16px">+ Add manual</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Ref</th><th>Customer</th><th>Vehicle / Type</th><th>Date &amp; Time</th><th>Status</th><th>Source</th></tr>
+              </thead>
+              <tbody id="ta-body">
+                <tr><td colspan="6" class="empty">Loading…</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -992,9 +1025,12 @@ function activatePage(hash) {
     document.getElementById('page-sub').textContent = route.sub;
   }
   if (window.isDemoActive) applyDemoUIData(route.pageId);
-  if (route.pageId === 'profile'  && typeof loadProfilePage   === 'function') loadProfilePage();
-  if (route.pageId === 'calendar' && typeof loadCalendarData  === 'function' && window.currentDealership?.id) {
+  if (route.pageId === 'profile'       && typeof loadProfilePage       === 'function') loadProfilePage();
+  if (route.pageId === 'calendar'      && typeof loadCalendarData      === 'function' && window.currentDealership?.id) {
     loadCalendarData(window.currentDealership.id);
+  }
+  if (route.pageId === 'today-activity' && typeof loadTodayActivityPage === 'function') {
+    loadTodayActivityPage();
   }
 }
 
@@ -1016,6 +1052,44 @@ window.addEventListener('hashchange', () => {
   if (!ROUTES[raw]) history.replaceState(null, '', '#dashboard');
   activatePage(hash);
 })();
+
+function loadTodayActivityPage() {
+  const data    = window._todayAppts || [];
+  const total   = data.length;
+  const pending = data.filter(a => a.status === 'pending' || a.status === 'requested').length;
+  const el = document.getElementById('ta-stats');
+  if (el) el.textContent = total + ' total appointment' + (total !== 1 ? 's' : '') + ' today · ' + pending + ' pending confirmation';
+
+  const SOURCE_PILL = {
+    'ai':               '<span class="badge-pill t-purple">Voice AI</span>',
+    'test_drive_sync':  '<span class="badge-pill t-blue">Form</span>',
+    'manual':           '<span class="src-pill">Manual</span>',
+  };
+  const viewAllRow = a => {
+    const name  = (a.customer_name || custName(a.customers));
+    const phone = a.customers?.phone || '';
+    const when  = fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at);
+    const veh   = a.vehicle ? escHtml(a.vehicle) : '';
+    const typ   = escHtml(a.appointment_type ? a.appointment_type.replace(/_/g, ' ') : '');
+    const cell  = veh ? veh + '<div class="td-phone">' + typ + '</div>' : typ;
+    const src   = SOURCE_PILL[a.source] || SOURCE_PILL['manual'];
+    return '<tr>'
+      + '<td class="td-ref">AC-' + escHtml(String(a.id).slice(0, 4).toUpperCase()) + '</td>'
+      + '<td><div class="td-name">' + escHtml(name) + '</div>'
+        + (phone ? '<div class="td-phone">' + escHtml(phone) + '</div>' : '') + '</td>'
+      + '<td>' + cell + '</td>'
+      + '<td class="td-time">' + when + '</td>'
+      + '<td>' + (APPT_PILL[a.status] || escHtml(a.status)) + '</td>'
+      + '<td>' + src + '</td>'
+      + '</tr>';
+  };
+  const tbody = document.getElementById('ta-body');
+  if (tbody) {
+    tbody.innerHTML = data.length
+      ? data.map(viewAllRow).join('')
+      : '<tr><td colspan="6" class="empty">No appointments scheduled today</td></tr>';
+  }
+}
 
 function openDpForm() {
   const form = document.getElementById('dp-form-section');
@@ -1640,6 +1714,7 @@ async function saveAppt() {
       closeApptModal();
       showToast(isEdit ? 'Appointment updated.' : 'Appointment saved.');
       try { await loadCalendarData(dealerId); } catch (_) {}
+      if (typeof window.loadLiveData === 'function') window.loadLiveData(dealerId);
     }
   } catch (ex) {
     msg.textContent = 'Save failed: ' + ex.message;

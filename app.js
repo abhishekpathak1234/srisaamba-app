@@ -14,15 +14,16 @@ const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
    Single source of truth for all SPA navigation.
    Key  = URL hash slug.  pageId = DOM section suffix (page-{pageId}).  */
 const ROUTES = {
-  'dashboard':     { pageId: 'dashboard',   title: 'Dashboard',              sub: '' },
-  'calendar':      { pageId: 'calendar',    title: 'Calendar',               sub: 'Appointment schedule' },
-  'smart-inbox':   { pageId: 'inbox',       title: 'Smart Inbox',            sub: 'Active accounts structure' },
-  'action-center': { pageId: 'todo',        title: 'Action Center',          sub: 'Actions tracking queue' },
-  'test-drives':   { pageId: 'bookings',    title: 'Test Drive Bookings',    sub: 'Complete booking ledger' },
-  'missed-calls':  { pageId: 'missed',      title: 'Missed Calls Recovered', sub: 'Recovery system analytics' },
-  'performance':   { pageId: 'performance', title: 'Performance',            sub: 'Account diagnostics engine' },
-  'settings':      { pageId: 'settings',    title: 'Settings',               sub: 'Dealer profile & account' },
-  'profile':       { pageId: 'profile',     title: 'Profile',                sub: 'Your account details' },
+  'dashboard':      { pageId: 'dashboard',      title: 'Dashboard',              sub: '' },
+  'today-activity': { pageId: 'today-activity', title: "Today's Activity",       sub: 'All appointments scheduled today' },
+  'calendar':       { pageId: 'calendar',       title: 'Calendar',               sub: 'Appointment schedule' },
+  'smart-inbox':    { pageId: 'inbox',          title: 'Smart Inbox',            sub: 'Active accounts structure' },
+  'action-center':  { pageId: 'todo',           title: 'Action Center',          sub: 'Actions tracking queue' },
+  'test-drives':    { pageId: 'bookings',       title: 'Test Drive Bookings',    sub: 'Complete booking ledger' },
+  'missed-calls':   { pageId: 'missed',         title: 'Missed Calls Recovered', sub: 'Recovery system analytics' },
+  'performance':    { pageId: 'performance',    title: 'Performance',            sub: 'Account diagnostics engine' },
+  'settings':       { pageId: 'settings',       title: 'Settings',               sub: 'Dealer profile & account' },
+  'profile':        { pageId: 'profile',        title: 'Profile',                sub: 'Your account details' },
   // 'agents':         { pageId: 'agents',         title: 'Agents',           sub: '' },
   // 'billing':        { pageId: 'billing',         title: 'Billing',          sub: '' },
   // 'integrations':   { pageId: 'integrations',    title: 'Integrations',     sub: '' },
@@ -167,13 +168,28 @@ window.loadLiveData = async function (dealerId) {
   setText('badge-actions', tasks.length);
   setText('badge-missed', dm.recoveredWeek);
 
-  // Today's test drives + all bookings table loops Scoped cleanly
+  // Derive live KPI values from today's calendar data
+  const tdToday     = (todays.data || []).filter(a => a.appointment_type === 'test_drive');
+  const confirmedTD = tdToday.filter(a => a.status === 'confirmed');
+  const liveRevenue = confirmedTD.length > 0 ? confirmedTD.length * 540 : dm.revenueProtected;
+
+  // KPI overrides — already called above for missed/afterhours; patch revenue + test-drives
+  setKpi('kpi-revenue',   liveRevenue, '$');
+  setKpi('kpi-afterhours', tdToday.length);
+
+  // Store today's full set globally so the View All page can read it without a re-fetch
+  window._todayAppts = todays.data || [];
+
+  // Today's Activity + all bookings table loops
   const apptRow = (a, withRef) => {
-    const name = a.customer_name || custName(a.customers);
-    const when = withRef ? fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at) : fmtTime(a.scheduled_at);
+    const name  = a.customer_name || custName(a.customers);
+    const phone = a.customers?.phone || '';
+    const when  = withRef ? fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at) : fmtTime(a.scheduled_at);
     return '<tr>'
       + (withRef ? '<td class="td-ref">AC-' + escHtml(String(a.id).slice(0, 4).toUpperCase()) + '</td>' : '')
-      + '<td><div class="td-name">' + escHtml(name) + '</div></td>'
+      + '<td><div class="td-name">' + escHtml(name) + '</div>'
+        + (phone ? '<div class="td-phone">' + escHtml(phone) + '</div>' : '')
+        + '</td>'
       + '<td>' + escHtml(a.vehicle || a.appointment_type.replace(/_/g, ' ')) + '</td>'
       + '<td class="td-time">' + when + '</td>'
       + '<td>' + (APPT_PILL[a.status] || escHtml(a.status)) + '</td>'
@@ -181,10 +197,9 @@ window.loadLiveData = async function (dealerId) {
   };
 
   if (todays.data) {
-    const todayTestDrives = todays.data.filter(a => a.appointment_type === 'test_drive');
-    document.getElementById('todays-bookings-body').innerHTML = todayTestDrives.length
-        ? todayTestDrives.map(a => apptRow(a, false)).join('')
-        : '<tr><td colspan="4" class="empty">No test drives scheduled today</td></tr>';
+    document.getElementById('todays-bookings-body').innerHTML = window._todayAppts.length
+        ? window._todayAppts.map(a => apptRow(a, false)).join('')
+        : '<tr><td colspan="4" class="empty">No appointments scheduled today</td></tr>';
   }
   if (allAppts.data) {
     document.getElementById('all-bookings-body').innerHTML = allAppts.data.length
