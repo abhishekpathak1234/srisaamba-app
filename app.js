@@ -183,14 +183,19 @@ window.loadLiveData = async function (dealerId) {
   // Today's Activity + all bookings table loops
   const apptRow = (a, withRef) => {
     const name  = a.customer_name || custName(a.customers);
-    const phone = a.customers?.phone || '';
+    const phone = a.customer_phone || a.customers?.phone || '';
+    const veh   = a.vehicle || '';
+    const typ   = a.appointment_type ? a.appointment_type.replace(/_/g, ' ') : '';
+    const vehicleCell = veh
+      ? escHtml(veh) + '<div class="td-vehicle">' + escHtml(typ) + '</div>'
+      : escHtml(typ);
     const when  = withRef ? fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at) : fmtTime(a.scheduled_at);
     return '<tr>'
       + (withRef ? '<td class="td-ref">AC-' + escHtml(String(a.id).slice(0, 4).toUpperCase()) + '</td>' : '')
       + '<td><div class="td-name">' + escHtml(name) + '</div>'
         + (phone ? '<div class="td-phone">' + escHtml(phone) + '</div>' : '')
         + '</td>'
-      + '<td>' + escHtml(a.vehicle || a.appointment_type.replace(/_/g, ' ')) + '</td>'
+      + '<td>' + vehicleCell + '</td>'
       + '<td class="td-time">' + when + '</td>'
       + '<td>' + (APPT_PILL[a.status] || escHtml(a.status)) + '</td>'
       + '</tr>';

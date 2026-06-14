@@ -34,6 +34,8 @@
   --red-s:      rgba(192,43,43,.10);
   --purple:     #6B38C4;
   --purple-s:   rgba(107,56,196,.10);
+  --teal:       #0E7490;
+  --teal-s:     rgba(14,116,144,.10);
   --radius:     10px;
   --radius-sm:  6px;
   --radius-lg:  16px;
@@ -230,10 +232,12 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .rb-divider { width: 1px; height: 40px; background: var(--border2); }
 
 .badge-pill { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 99px; font-family: var(--mono); }
-.t-green { background: var(--green-s); color: var(--green); }
-.t-amber { background: var(--amber-s); color: var(--amber); }
-.t-blue  { background: var(--blue-s);  color: var(--blue);  }
-.t-red   { background: var(--red-s);   color: var(--red);   }
+.t-green  { background: var(--green-s);  color: var(--green);  }
+.t-amber  { background: var(--amber-s); color: var(--amber); }
+.t-blue   { background: var(--blue-s);  color: var(--blue);  }
+.t-red    { background: var(--red-s);   color: var(--red);   }
+.t-purple { background: var(--purple-s); color: var(--purple); }
+.t-teal   { background: var(--teal-s);  color: var(--teal);  }
 .empty { padding: 40px; text-align: center; color: var(--ink3); font-size: 13px; }
 
 /* ── SETTINGS / PROFILE FORM ─────────────────────────────── */
@@ -708,9 +712,9 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             <button class="tb-btn ghost" onclick="calGoToday()" style="font-size:11px;padding:5px 12px;margin-left:4px;">Today</button>
           </div>
           <div class="cal-view-tabs">
-            <button class="cal-vtab" data-v="today" onclick="calSetView('today')">Day <span class="cal-today-dot"></span></button>
+            <button class="cal-vtab active" data-v="today" onclick="calSetView('today')">Day <span class="cal-today-dot"></span></button>
             <button class="cal-vtab" data-v="week" onclick="calSetView('week')">Week</button>
-            <button class="cal-vtab active" data-v="month" onclick="calSetView('month')">Month</button>
+            <button class="cal-vtab" data-v="month" onclick="calSetView('month')">Month</button>
           </div>
           <button class="btn-primary" onclick="openApptModal()" style="margin-left:auto;">+ New Appointment</button>
         </div>
@@ -1028,9 +1032,11 @@ function activatePage(hash) {
   if (window.isDemoActive) applyDemoUIData(route.pageId);
   if (route.pageId === 'profile'       && typeof loadProfilePage       === 'function') loadProfilePage();
   if (route.pageId === 'calendar' && window.currentDealership?.id) {
-    // Sidebar reset: close any open modals, clear editing state, reset to month view
+    // Destructive sidebar reset: close modals, wipe transient form state, snap back to Day/Today
     if (typeof closeApptModal === 'function') closeApptModal();
     if (typeof closeTdModal   === 'function') closeTdModal();
+    _calView = 'today';
+    _calDate = new Date();
     if (typeof loadCalendarData === 'function') loadCalendarData(window.currentDealership.id);
   }
   if (route.pageId === 'today-activity' && typeof loadTodayActivityPage === 'function') {
@@ -1065,18 +1071,21 @@ function loadTodayActivityPage() {
   if (el) el.textContent = total + ' total appointment' + (total !== 1 ? 's' : '') + ' today · ' + pending + ' pending confirmation';
 
   const SOURCE_PILL = {
-    'ai':               '<span class="badge-pill t-purple">Voice AI</span>',
-    'test_drive_sync':  '<span class="badge-pill t-blue">Form</span>',
-    'manual':           '<span class="src-pill">Manual</span>',
+    'ai':               '<span class="badge-pill t-purple">voice</span>',
+    'voice':            '<span class="badge-pill t-purple">voice</span>',
+    'sms':              '<span class="badge-pill t-teal">sms</span>',
+    'facebook':         '<span class="badge-pill t-blue">facebook</span>',
+    'test_drive_sync':  '<span class="badge-pill t-blue">form</span>',
+    'manual':           '<span class="src-pill">manual</span>',
   };
   const viewAllRow = a => {
     const name  = (a.customer_name || custName(a.customers));
-    const phone = a.customers?.phone || '';
+    const phone = a.customer_phone || a.customers?.phone || '';
     const when  = fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at);
     const veh   = a.vehicle ? escHtml(a.vehicle) : '';
     const typ   = escHtml(a.appointment_type ? a.appointment_type.replace(/_/g, ' ') : '');
-    const cell  = veh ? veh + '<div class="td-phone">' + typ + '</div>' : typ;
-    const src   = SOURCE_PILL[a.source] || SOURCE_PILL['manual'];
+    const cell  = veh ? veh + '<div class="td-vehicle">' + typ + '</div>' : typ;
+    const src   = SOURCE_PILL[a.source] || '<span class="src-pill">' + escHtml(a.source || 'manual') + '</span>';
     return '<tr>'
       + '<td class="td-ref">AC-' + escHtml(String(a.id).slice(0, 4).toUpperCase()) + '</td>'
       + '<td><div class="td-name">' + escHtml(name) + '</div>'
@@ -1364,9 +1373,21 @@ async function saveTestDrive() {
 <!-- ── CALENDAR JAVASCRIPT ───────────────────────────────────── -->
 <script>
 // ── State ────────────────────────────────────────────────────────
-let _calView = 'month';
+let _calView = 'today';
 let _calDate = new Date();
 let _calAppts = [];
+
+// Immediately enforce Day as the visible default so the month grid is never shown
+// before data loads — calSetView toggles display:none on all three containers.
+(function _initCalView() {
+  ['today','week','month'].forEach(n => {
+    const el = document.getElementById('cal-view-' + n);
+    if (el) el.style.display = n === 'today' ? '' : 'none';
+  });
+  document.querySelectorAll('.cal-vtab').forEach(b => {
+    b.classList.toggle('active', b.dataset.v === 'today');
+  });
+})();
 
 // ── Data ─────────────────────────────────────────────────────────
 async function loadCalendarData(dealerId) {
