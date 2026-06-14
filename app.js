@@ -15,6 +15,7 @@ const supa = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
    Key  = URL hash slug.  pageId = DOM section suffix (page-{pageId}).  */
 const ROUTES = {
   'dashboard':     { pageId: 'dashboard',   title: 'Dashboard',              sub: '' },
+  'calendar':      { pageId: 'calendar',    title: 'Calendar',               sub: 'Appointment schedule' },
   'smart-inbox':   { pageId: 'inbox',       title: 'Smart Inbox',            sub: 'Active accounts structure' },
   'action-center': { pageId: 'todo',        title: 'Action Center',          sub: 'Actions tracking queue' },
   'test-drives':   { pageId: 'bookings',    title: 'Test Drive Bookings',    sub: 'Complete booking ledger' },

@@ -230,6 +230,10 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .rb-divider { width: 1px; height: 40px; background: var(--border2); }
 
 .badge-pill { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 99px; font-family: var(--mono); }
+.t-green { background: var(--green-s); color: var(--green); }
+.t-amber { background: var(--amber-s); color: var(--amber); }
+.t-blue  { background: var(--blue-s);  color: var(--blue);  }
+.t-red   { background: var(--red-s);   color: var(--red);   }
 .empty { padding: 40px; text-align: center; color: var(--ink3); font-size: 13px; }
 
 /* ── SETTINGS / PROFILE FORM ─────────────────────────────── */
@@ -282,6 +286,79 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 .sh-card-desc { font-size: 12px; color: var(--ink3); font-family: var(--mono); }
 .sh-card-head .btn-primary { margin-left: auto; flex-shrink: 0; }
 .sh-soon { display: inline-flex; align-items: center; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: 99px; background: var(--surface2); color: var(--ink3); font-family: var(--mono); margin-top: 10px; }
+
+/* ── CALENDAR MODULE ─────────────────────────────────────────── */
+.cal-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+.cal-nav { display:flex; align-items:center; gap:6px; }
+.cal-nav-btn { width:30px; height:30px; border-radius:var(--radius-sm); background:var(--surface2); border:1px solid var(--border2); font-size:17px; line-height:1; display:flex; align-items:center; justify-content:center; color:var(--ink2); transition:background .15s; }
+.cal-nav-btn:hover { background:var(--surface3); }
+.cal-period-label { font-size:15px; font-weight:700; min-width:200px; text-align:center; letter-spacing:-.3px; }
+.cal-view-tabs { display:flex; gap:2px; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:3px; margin-left:auto; }
+.cal-vtab { padding:5px 16px; border-radius:4px; font-size:12px; font-weight:600; color:var(--ink3); transition:all .15s; cursor:pointer; }
+.cal-vtab.active { background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+
+/* Appointment card — day view */
+.appt-card { display:flex; align-items:flex-start; gap:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:8px; border-left:3px solid var(--orange); transition:box-shadow .15s; cursor:pointer; }
+.appt-card:hover { box-shadow:var(--shadow); }
+.appt-card.type-service   { border-left-color:var(--blue); }
+.appt-card.type-trade-in  { border-left-color:var(--purple); }
+.appt-time-col { font-size:12px; font-weight:700; font-family:var(--mono); color:var(--ink2); min-width:62px; padding-top:3px; }
+.appt-body { flex:1; min-width:0; }
+.appt-name { font-size:14px; font-weight:700; margin-bottom:2px; }
+.appt-vehicle { font-size:11px; color:var(--ink2); font-family:var(--mono); margin-bottom:5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.appt-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.appt-type-label { background:var(--surface2); padding:2px 8px; border-radius:99px; font-size:10px; font-weight:700; font-family:var(--mono); color:var(--ink2); text-transform:uppercase; letter-spacing:.05em; }
+.appt-assignee { font-size:11px; color:var(--ink3); font-family:var(--mono); }
+.appt-status-col { display:flex; align-items:flex-start; padding-top:2px; flex-shrink:0; }
+
+/* Day view chrome */
+.cal-day-header { padding:0 0 14px; border-bottom:1px solid var(--border); margin-bottom:18px; }
+.cal-day-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--ink3); font-family:var(--mono); margin-bottom:4px; }
+.cal-day-date { font-size:26px; font-weight:800; letter-spacing:-1px; }
+.cal-section-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--ink3); font-family:var(--mono); margin:0 0 10px; }
+.cal-empty-day { text-align:center; padding:60px 20px; color:var(--ink3); font-size:13px; }
+.cal-empty-day .btn-primary { margin-top:14px; }
+
+/* Week view */
+.cal-week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; }
+@media(max-width:960px){ .cal-week-grid { grid-template-columns:repeat(4,1fr); } }
+@media(max-width:600px){ .cal-week-grid { grid-template-columns:repeat(2,1fr); } }
+.cal-week-col { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.cal-week-col.cal-today-col { border-color:var(--orange); }
+.cal-week-col-head { padding:10px 12px; border-bottom:1px solid var(--border); background:var(--surface2); }
+.cwc-dayname { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--ink3); font-family:var(--mono); }
+.cwc-datenum { font-size:22px; font-weight:800; letter-spacing:-.5px; line-height:1; margin-top:2px; }
+.cwc-datenum.cal-today-num { color:var(--orange); }
+.cal-week-col-body { padding:8px; min-height:72px; }
+.cal-week-evt { font-size:11px; font-weight:600; padding:5px 8px; border-radius:6px; margin-bottom:4px; background:var(--orange-s); border-left:2px solid var(--orange); cursor:pointer; line-height:1.3; }
+.cal-week-evt:hover { opacity:.8; }
+.cal-week-evt.s-svc  { background:var(--blue-s);   border-left-color:var(--blue);   }
+.cal-week-evt.s-trd  { background:var(--purple-s); border-left-color:var(--purple); }
+.cal-week-empty { font-size:11px; color:var(--ink3); text-align:center; padding:12px 4px; font-family:var(--mono); }
+
+/* Month view */
+.cal-month-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+.cal-month-dayname { background:var(--surface2); text-align:center; padding:8px 4px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--ink3); font-family:var(--mono); }
+.cal-month-cell { background:var(--surface); min-height:84px; padding:7px 8px; vertical-align:top; }
+.cal-month-cell.cal-other-month { background:var(--surface2); }
+.cal-month-cell.cal-today-cell { background:rgba(255,92,26,.04); }
+.cal-month-num { font-size:12px; font-weight:700; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%; margin-bottom:5px; }
+.cal-month-today-num { background:var(--orange); color:white; }
+.cal-month-evt { font-size:10px; font-weight:600; padding:2px 6px; border-radius:4px; margin-bottom:2px; background:var(--orange-s); border-left:2px solid var(--orange); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; font-family:var(--mono); }
+.cal-month-evt.s-svc { background:var(--blue-s);   border-left-color:var(--blue); }
+.cal-month-evt.s-trd { background:var(--purple-s); border-left-color:var(--purple); }
+.cal-month-more { font-size:10px; color:var(--ink3); font-family:var(--mono); cursor:pointer; margin-top:1px; }
+.cal-month-more:hover { color:var(--orange); }
+
+/* Create appointment modal */
+.cal-modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:200; display:flex; align-items:center; justify-content:center; padding:20px; }
+.cal-modal-box { background:var(--surface); border-radius:var(--radius-lg); width:100%; max-width:560px; max-height:90vh; overflow-y:auto; box-shadow:var(--shadow-lg); }
+.cal-modal-head { display:flex; align-items:center; justify-content:space-between; padding:18px 22px 14px; border-bottom:1px solid var(--border); }
+.cal-modal-title { font-size:16px; font-weight:800; letter-spacing:-.3px; }
+.cal-modal-close { width:30px; height:30px; border-radius:50%; background:var(--surface2); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--ink3); transition:background .15s; }
+.cal-modal-close:hover { background:var(--surface3); color:var(--ink); }
+.cal-modal-body { padding:20px 22px; }
+.cal-modal-footer { display:flex; align-items:center; justify-content:flex-end; gap:10px; padding:14px 22px; border-top:1px solid var(--border); }
 </style>
 </head>
 <body>
@@ -410,6 +487,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     <nav class="sb-nav">
       <div class="sb-section">Overview</div>
       <div class="sb-item active" data-page="dashboard" onclick="goTo('dashboard')">Dashboard</div>
+      <div class="sb-item" data-page="calendar" onclick="goTo('calendar')">📅 Calendar</div>
       <div class="sb-section">Conversations</div>
       <div class="sb-item" data-page="smart-inbox" onclick="goTo('smart-inbox')">Smart Inbox</div>
       <div class="sb-item" data-page="action-center" onclick="goTo('action-center')">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
@@ -561,6 +639,29 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             </svg>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR PANEL -->
+    <div class="page" id="page-calendar">
+      <div class="page-content">
+        <div class="cal-toolbar">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+            <span class="cal-period-label" id="cal-period-label">—</span>
+            <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+            <button class="tb-btn ghost" onclick="calGoToday()" style="font-size:11px;padding:5px 12px;margin-left:4px;">Today</button>
+          </div>
+          <div class="cal-view-tabs">
+            <button class="cal-vtab active" data-v="today" onclick="calSetView('today')">Day</button>
+            <button class="cal-vtab" data-v="week" onclick="calSetView('week')">Week</button>
+            <button class="cal-vtab" data-v="month" onclick="calSetView('month')">Month</button>
+          </div>
+          <button class="btn-primary" onclick="openApptModal()" style="margin-left:auto;">+ New Appointment</button>
+        </div>
+        <div id="cal-view-today"></div>
+        <div id="cal-view-week" style="display:none"></div>
+        <div id="cal-view-month" style="display:none"></div>
       </div>
     </div>
 
@@ -870,7 +971,10 @@ function activatePage(hash) {
     document.getElementById('page-sub').textContent = route.sub;
   }
   if (window.isDemoActive) applyDemoUIData(route.pageId);
-  if (route.pageId === 'profile' && typeof loadProfilePage === 'function') loadProfilePage();
+  if (route.pageId === 'profile'  && typeof loadProfilePage   === 'function') loadProfilePage();
+  if (route.pageId === 'calendar' && typeof loadCalendarData  === 'function' && window.currentDealership?.id) {
+    loadCalendarData(window.currentDealership.id);
+  }
 }
 
 function goTo(hash) {
@@ -963,6 +1067,345 @@ function applyDemoUIData(pageId) {
 }
 
 setTimeout(() => { if (window.isDemoActive) applyDemoUIData('dashboard'); }, 200);
+</script>
+
+<!-- ── APPOINTMENT MODAL ─────────────────────────────────────── -->
+<div class="cal-modal-overlay" id="appt-modal" style="display:none" onclick="if(event.target===this)closeApptModal()">
+  <div class="cal-modal-box">
+    <div class="cal-modal-head">
+      <div class="cal-modal-title">New Appointment</div>
+      <button class="cal-modal-close" onclick="closeApptModal()">✕</button>
+    </div>
+    <div class="cal-modal-body">
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="form-label" for="am-customer">Customer Name</label>
+          <input class="form-input" id="am-customer" type="text" placeholder="e.g. James Wilson">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="am-vehicle">Vehicle</label>
+          <input class="form-input" id="am-vehicle" type="text" placeholder="e.g. 2020 Toyota Camry · $17,500">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="am-type">Appointment Type</label>
+          <select class="form-input" id="am-type">
+            <option value="test_drive">Test Drive</option>
+            <option value="service">Service</option>
+            <option value="trade_in_inspection">Trade-in Inspection</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="am-assigned">Assigned Salesperson</label>
+          <input class="form-input" id="am-assigned" type="text" placeholder="Salesperson name">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="am-datetime">Date &amp; Time</label>
+          <input class="form-input" id="am-datetime" type="datetime-local">
+        </div>
+        <div class="form-field">
+          <label class="form-label" for="am-status">Status</label>
+          <select class="form-input" id="am-status">
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="requested">Requested</option>
+          </select>
+        </div>
+        <div class="form-field" style="grid-column:1/-1">
+          <label class="form-label" for="am-notes">Notes</label>
+          <textarea class="form-input" id="am-notes" rows="3" placeholder="Optional notes…" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div id="am-msg" class="form-status" style="margin-top:10px"></div>
+    </div>
+    <div class="cal-modal-footer">
+      <button class="tb-btn ghost" onclick="closeApptModal()">Cancel</button>
+      <button class="btn-primary" id="am-save-btn" onclick="saveAppt()">Save Appointment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CALENDAR JAVASCRIPT ───────────────────────────────────── -->
+<script>
+// ── State ────────────────────────────────────────────────────────
+let _calView = 'today';
+let _calDate = new Date();
+let _calAppts = [];
+
+// ── Data ─────────────────────────────────────────────────────────
+async function loadCalendarData(dealerId) {
+  const { data } = await supa
+    .from('appointments')
+    .select('*, customers(first_name,last_name)')
+    .eq('dealer_id', dealerId)
+    .order('scheduled_at');
+  _calAppts = data || [];
+  renderCalendar();
+}
+
+// ── View switching ────────────────────────────────────────────────
+function calSetView(v) {
+  _calView = v;
+  document.querySelectorAll('.cal-vtab').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+  ['today','week','month'].forEach(n => {
+    const el = document.getElementById('cal-view-' + n);
+    if (el) el.style.display = n === v ? '' : 'none';
+  });
+  renderCalendar();
+}
+
+function calNav(dir) {
+  if (_calView === 'today')  _calDate.setDate(_calDate.getDate() + dir);
+  else if (_calView === 'week') _calDate.setDate(_calDate.getDate() + dir * 7);
+  else _calDate.setMonth(_calDate.getMonth() + dir);
+  renderCalendar();
+}
+
+function calGoToday() { _calDate = new Date(); renderCalendar(); }
+
+function renderCalendar() {
+  if (_calView === 'today')  _renderCalDay();
+  else if (_calView === 'week') _renderCalWeek();
+  else _renderCalMonth();
+}
+
+// ── Helpers ───────────────────────────────────────────────────────
+const _calFmtTime  = ts => new Date(ts).toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
+const _calCustName = a => {
+  const c = a.customers;
+  return c ? (((c.first_name||'') + ' ' + (c.last_name||'')).trim() || 'Unknown') : 'Unknown';
+};
+const _typeClass = t => t === 'service' ? 's-svc' : t === 'trade_in_inspection' ? 's-trd' : '';
+const _typeLabel = t => t === 'test_drive' ? 'Test Drive' : t === 'service' ? 'Service' : 'Trade-in';
+const _dayRange  = d => {
+  const s = new Date(d); s.setHours(0,0,0,0);
+  const e = new Date(d); e.setHours(23,59,59,999);
+  return [s, e];
+};
+const _isToday = d => d.toDateString() === new Date().toDateString();
+
+function _apptCard(a) {
+  const name = _calCustName(a);
+  const tc = _typeClass(a.appointment_type);
+  const borderCls = tc === 's-svc' ? 'type-service' : tc === 's-trd' ? 'type-trade-in' : '';
+  const pill = APPT_PILL[a.status] || `<span class="badge-pill">${escHtml(a.status)}</span>`;
+  const assignee = a.assigned_to_name
+    ? `<span class="appt-assignee">· ${escHtml(a.assigned_to_name)}</span>` : '';
+  return `<div class="appt-card ${borderCls}">
+    <div class="appt-time-col">${_calFmtTime(a.scheduled_at)}</div>
+    <div class="appt-body">
+      <div class="appt-name">${escHtml(name)}</div>
+      <div class="appt-vehicle">${escHtml(a.vehicle || '—')}</div>
+      <div class="appt-meta">
+        <span class="appt-type-label">${_typeLabel(a.appointment_type)}</span>
+        ${assignee}
+      </div>
+    </div>
+    <div class="appt-status-col">${pill}</div>
+  </div>`;
+}
+
+// ── Day view ──────────────────────────────────────────────────────
+function _renderCalDay() {
+  const el = document.getElementById('cal-view-today');
+  if (!el) return;
+  const [s, e] = _dayRange(_calDate);
+  const appts = _calAppts
+    .filter(a => { const t = new Date(a.scheduled_at); return t >= s && t <= e; })
+    .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+
+  const labelPrefix = _isToday(_calDate) ? 'TODAY · ' : '';
+  const dayLabel = _calDate.toLocaleDateString('en-US', { weekday:'long' }).toUpperCase();
+  const dateStr  = _calDate.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+  document.getElementById('cal-period-label').textContent = dateStr;
+
+  const body = appts.length
+    ? `<div class="cal-section-label">${appts.length} APPOINTMENT${appts.length !== 1 ? 'S' : ''}</div>` + appts.map(_apptCard).join('')
+    : `<div class="cal-empty-day">No appointments scheduled.<br><button class="btn-primary" onclick="openApptModal()">+ New Appointment</button></div>`;
+
+  el.innerHTML = `<div class="cal-day-header">
+    <div class="cal-day-label">${labelPrefix}${dayLabel}</div>
+    <div class="cal-day-date">${dateStr}</div>
+  </div>${body}`;
+}
+
+// ── Week view ─────────────────────────────────────────────────────
+function _renderCalWeek() {
+  const el = document.getElementById('cal-view-week');
+  if (!el) return;
+  const monday = new Date(_calDate);
+  const dow = monday.getDay();
+  monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate() + i); return d;
+  });
+
+  document.getElementById('cal-period-label').textContent =
+    days[0].toLocaleDateString('en-US', { month:'short', day:'numeric' }) + ' – ' +
+    days[6].toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+  const today = new Date();
+  const cols = days.map(d => {
+    const [s, e] = _dayRange(d);
+    const appts = _calAppts
+      .filter(a => { const t = new Date(a.scheduled_at); return t >= s && t <= e; })
+      .sort((a, b) => new Date(a.scheduled_at) - new Date(b.scheduled_at));
+    const isT = d.toDateString() === today.toDateString();
+    const dayName = d.toLocaleDateString('en-US', { weekday:'short' }).toUpperCase();
+    const iso = d.toISOString();
+    const evts = appts.map(a => {
+      const tc = _typeClass(a.appointment_type);
+      return `<div class="cal-week-evt ${tc}" onclick="_calJumpDay('${iso}')">
+        <div style="font-family:var(--mono)">${_calFmtTime(a.scheduled_at)}</div>
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(_calCustName(a))}</div>
+      </div>`;
+    }).join('') || `<div class="cal-week-empty">—</div>`;
+
+    return `<div class="cal-week-col${isT ? ' cal-today-col' : ''}">
+      <div class="cal-week-col-head">
+        <div class="cwc-dayname">${dayName}</div>
+        <div class="cwc-datenum${isT ? ' cal-today-num' : ''}">${d.getDate()}</div>
+      </div>
+      <div class="cal-week-col-body">${evts}</div>
+    </div>`;
+  });
+
+  el.innerHTML = `<div class="cal-week-grid">${cols.join('')}</div>`;
+}
+
+// ── Month view ────────────────────────────────────────────────────
+function _renderCalMonth() {
+  const el = document.getElementById('cal-view-month');
+  if (!el) return;
+  const y = _calDate.getFullYear(), m = _calDate.getMonth();
+  document.getElementById('cal-period-label').textContent =
+    new Date(y, m, 1).toLocaleDateString('en-US', { month:'long', year:'numeric' });
+
+  const firstDow = new Date(y, m, 1).getDay();
+  const lastDate = new Date(y, m + 1, 0).getDate();
+  const today = new Date();
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  let html = '<div class="cal-month-grid">';
+  html += DAY_NAMES.map(n => `<div class="cal-month-dayname">${n}</div>`).join('');
+
+  // Leading blanks from prev month
+  for (let i = 0; i < firstDow; i++) {
+    const pd = new Date(y, m, i - firstDow + 1);
+    html += `<div class="cal-month-cell cal-other-month"><div class="cal-month-num">${pd.getDate()}</div></div>`;
+  }
+
+  for (let d = 1; d <= lastDate; d++) {
+    const cell = new Date(y, m, d);
+    const isT  = cell.toDateString() === today.toDateString();
+    const [s, e] = _dayRange(cell);
+    const dayAppts = _calAppts.filter(a => { const t = new Date(a.scheduled_at); return t >= s && t <= e; });
+    const iso = cell.toISOString();
+    const shown = dayAppts.slice(0, 3);
+    const more  = dayAppts.length - shown.length;
+    const evts  = shown.map(a => {
+      const tc = _typeClass(a.appointment_type);
+      const first = (a.customers?.first_name) || 'Appt';
+      return `<div class="cal-month-evt ${tc}" onclick="_calJumpDay('${iso}')" title="${escHtml(_calCustName(a))}">${escHtml(first)}</div>`;
+    }).join('');
+    const moreEl = more > 0 ? `<div class="cal-month-more" onclick="_calJumpDay('${iso}')">+${more} more</div>` : '';
+
+    html += `<div class="cal-month-cell${isT ? ' cal-today-cell' : ''}">
+      <div class="cal-month-num${isT ? ' cal-month-today-num' : ''}">${d}</div>
+      ${evts}${moreEl}
+    </div>`;
+  }
+
+  // Trailing blanks
+  const total = firstDow + lastDate;
+  const trail = Math.ceil(total / 7) * 7 - total;
+  for (let i = 1; i <= trail; i++) {
+    html += `<div class="cal-month-cell cal-other-month"><div class="cal-month-num">${i}</div></div>`;
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function _calJumpDay(iso) {
+  _calDate = new Date(iso);
+  calSetView('today');
+}
+
+// ── Modal ─────────────────────────────────────────────────────────
+function openApptModal() {
+  const now = new Date();
+  now.setMinutes(0, 0, 0);
+  now.setHours(now.getHours() + 1);
+  const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  document.getElementById('am-datetime').value = localIso;
+  document.getElementById('am-msg').textContent = '';
+  document.getElementById('appt-modal').style.display = 'flex';
+}
+
+function closeApptModal() {
+  document.getElementById('appt-modal').style.display = 'none';
+  ['am-customer','am-vehicle','am-assigned','am-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const sel = document.getElementById('am-type'); if (sel) sel.selectedIndex = 0;
+  const st  = document.getElementById('am-status'); if (st)  st.selectedIndex = 0;
+}
+
+async function saveAppt() {
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) return;
+  const btn = document.getElementById('am-save-btn');
+  const msg = document.getElementById('am-msg');
+
+  const customerName = (document.getElementById('am-customer')?.value || '').trim();
+  const vehicle      = (document.getElementById('am-vehicle')?.value  || '').trim();
+  const apptType     = document.getElementById('am-type')?.value || 'test_drive';
+  const assigned     = (document.getElementById('am-assigned')?.value || '').trim();
+  const dt           = document.getElementById('am-datetime')?.value || '';
+  const status       = document.getElementById('am-status')?.value || 'pending';
+  const notes        = (document.getElementById('am-notes')?.value || '').trim();
+
+  if (!customerName || !dt) {
+    msg.textContent = 'Customer name and date/time are required.';
+    msg.className = 'form-status error';
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  msg.textContent = '';
+
+  // Create a lightweight customer stub scoped to this dealership
+  const nameParts = customerName.split(' ');
+  const { data: cust } = await supa.from('customers').insert({
+    dealer_id:  dealerId,
+    first_name: nameParts[0] || customerName,
+    last_name:  nameParts.slice(1).join(' ') || '',
+    status:     'new',
+  }).select('id').maybeSingle();
+
+  const { error } = await supa.from('appointments').insert({
+    dealer_id:        dealerId,
+    customer_id:      cust?.id || null,
+    appointment_type: apptType,
+    vehicle:          vehicle  || null,
+    scheduled_at:     new Date(dt).toISOString(),
+    status:           status,
+    assigned_to_name: assigned || null,
+    notes:            notes    || null,
+    source:           'manual',
+  });
+
+  if (error) {
+    msg.textContent = 'Save failed: ' + error.message;
+    msg.className = 'form-status error';
+  } else {
+    closeApptModal();
+    await loadCalendarData(dealerId);
+  }
+
+  btn.disabled = false; btn.textContent = 'Save Appointment';
+}
 </script>
 </body>
 </html>
