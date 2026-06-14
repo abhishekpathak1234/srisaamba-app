@@ -1086,6 +1086,10 @@ setTimeout(() => { if (window.isDemoActive) applyDemoUIData('dashboard'); }, 200
           <input class="form-input" id="am-customer" type="text" placeholder="e.g. James Wilson">
         </div>
         <div class="form-field">
+          <label class="form-label" for="am-phone">Phone Number</label>
+          <input class="form-input" id="am-phone" type="tel" placeholder="e.g. (555) 100-2049">
+        </div>
+        <div class="form-field">
           <label class="form-label" for="am-vehicle">Vehicle</label>
           <input class="form-input" id="am-vehicle" type="text" placeholder="e.g. 2020 Toyota Camry · $17,500">
         </div>
@@ -1145,6 +1149,10 @@ setTimeout(() => { if (window.isDemoActive) applyDemoUIData('dashboard'); }, 200
           <input class="form-input" id="td-customer" type="text" placeholder="e.g. James Wilson">
         </div>
         <div class="form-field">
+          <label class="form-label" for="td-phone">Phone Number</label>
+          <input class="form-input" id="td-phone" type="tel" placeholder="e.g. (555) 100-2049">
+        </div>
+        <div class="form-field">
           <label class="form-label" for="td-vehicle">Vehicle</label>
           <input class="form-input" id="td-vehicle" type="text" placeholder="e.g. 2020 Toyota Camry · $17,500">
         </div>
@@ -1191,7 +1199,7 @@ function openTdModal() {
 
 function closeTdModal() {
   document.getElementById('td-modal').style.display = 'none';
-  ['td-customer','td-vehicle','td-assigned'].forEach(id => {
+  ['td-customer','td-phone','td-vehicle','td-assigned'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const st = document.getElementById('td-status'); if (st) st.selectedIndex = 0;
@@ -1204,6 +1212,7 @@ async function saveTestDrive() {
   const msg = document.getElementById('td-msg');
 
   const customerName = (document.getElementById('td-customer')?.value || '').trim();
+  const phone        = (document.getElementById('td-phone')?.value    || '').trim();
   const vehicle      = (document.getElementById('td-vehicle')?.value  || '').trim();
   const dt           = document.getElementById('td-datetime')?.value || '';
   const assigned     = (document.getElementById('td-assigned')?.value || '').trim();
@@ -1224,6 +1233,7 @@ async function saveTestDrive() {
     dealer_id:  dealerId,
     first_name: nameParts[0] || customerName,
     last_name:  nameParts.slice(1).join(' ') || '',
+    phone:      phone || null,
     status:     'new',
   }).select('id').maybeSingle();
 
@@ -1480,7 +1490,7 @@ function openApptModal() {
 
 function closeApptModal() {
   document.getElementById('appt-modal').style.display = 'none';
-  ['am-customer','am-vehicle','am-assigned','am-notes'].forEach(id => {
+  ['am-customer','am-phone','am-vehicle','am-assigned','am-notes'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
   const sel = document.getElementById('am-type'); if (sel) sel.selectedIndex = 0;
@@ -1494,6 +1504,7 @@ async function saveAppt() {
   const msg = document.getElementById('am-msg');
 
   const customerName = (document.getElementById('am-customer')?.value || '').trim();
+  const phone        = (document.getElementById('am-phone')?.value    || '').trim();
   const vehicle      = (document.getElementById('am-vehicle')?.value  || '').trim();
   const apptType     = document.getElementById('am-type')?.value || 'test_drive';
   const assigned     = (document.getElementById('am-assigned')?.value || '').trim();
@@ -1516,6 +1527,7 @@ async function saveAppt() {
     dealer_id:  dealerId,
     first_name: nameParts[0] || customerName,
     last_name:  nameParts.slice(1).join(' ') || '',
+    phone:      phone || null,
     status:     'new',
   }).select('id').maybeSingle();
 
