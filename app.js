@@ -169,20 +169,21 @@ window.loadLiveData = async function (dealerId) {
 
   // Today's test drives + all bookings table loops Scoped cleanly
   const apptRow = (a, withRef) => {
-    const c = a.customers;
+    const name = a.customer_name || custName(a.customers);
     const when = withRef ? fmtDay(a.scheduled_at) + ' · ' + fmtTime(a.scheduled_at) : fmtTime(a.scheduled_at);
     return '<tr>'
       + (withRef ? '<td class="td-ref">AC-' + escHtml(String(a.id).slice(0, 4).toUpperCase()) + '</td>' : '')
-      + '<td><div class="td-name">' + custName(c) + '</div></td>'
+      + '<td><div class="td-name">' + escHtml(name) + '</div></td>'
       + '<td>' + escHtml(a.vehicle || a.appointment_type.replace(/_/g, ' ')) + '</td>'
       + '<td class="td-time">' + when + '</td>'
       + '<td>' + (APPT_PILL[a.status] || escHtml(a.status)) + '</td>'
       + '</tr>';
   };
-  
+
   if (todays.data) {
-    document.getElementById('todays-bookings-body').innerHTML = todays.data.length
-        ? todays.data.map(a => apptRow(a, false)).join('')
+    const todayTestDrives = todays.data.filter(a => a.appointment_type === 'test_drive');
+    document.getElementById('todays-bookings-body').innerHTML = todayTestDrives.length
+        ? todayTestDrives.map(a => apptRow(a, false)).join('')
         : '<tr><td colspan="4" class="empty">No test drives scheduled today</td></tr>';
   }
   if (allAppts.data) {

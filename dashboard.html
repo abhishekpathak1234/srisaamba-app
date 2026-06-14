@@ -1336,7 +1336,7 @@ const _calCustName = a => {
   return joined || _typeLabel(a.appointment_type) || 'Appointment';
 };
 const _typeClass = t => t === 'service' ? 's-svc' : t === 'trade_in_inspection' ? 's-trd' : '';
-const _typeLabel = t => t === 'test_drive' ? 'Test Drive' : t === 'service' ? 'Service' : 'Trade-in';
+const _typeLabel = t => t === 'test_drive' ? 'Test Drive' : t === 'service' ? 'Service' : t === 'trade_in_inspection' ? 'Trade-in Inspection' : 'Appointment';
 const _dayRange  = d => {
   const s = new Date(d); s.setHours(0,0,0,0);
   const e = new Date(d); e.setHours(23,59,59,999);
@@ -1470,8 +1470,9 @@ function _renderCalMonth() {
     const more  = dayAppts.length - shown.length;
     const evts  = shown.map(a => {
       const tc    = _typeClass(a.appointment_type);
-      const label = _calCustName(a).split(' ')[0];
-      return `<div class="cal-month-evt ${tc}" onclick="_calJumpDay('${iso}')" title="${escHtml(_calCustName(a))}">${escHtml(label)}</div>`;
+      const first = _calCustName(a).split(' ')[0];
+      const label = first + ' (' + _typeLabel(a.appointment_type) + ')';
+      return `<div class="cal-month-evt ${tc}" onclick="_calJumpDay('${iso}')" title="${escHtml(_calCustName(a) + ' — ' + _typeLabel(a.appointment_type))}">${escHtml(label)}</div>`;
     }).join('');
     const moreEl = more > 0 ? `<div class="cal-month-more" onclick="_calJumpDay('${iso}')">+${more} more</div>` : '';
 
@@ -1616,32 +1617,37 @@ async function saveAppt() {
     customer_name:    customerName,
   };
 
-  let error;
-  if (isEdit) {
-    ({ error } = await supa.from('appointments')
-      .update(payload)
-      .eq('id', _editingApptId)
-      .eq('dealer_id', dealerId));
-  } else {
-    ({ error } = await supa.from('appointments').insert({
-      dealer_id:   dealerId,
-      customer_id: null,
-      source:      'manual',
-      ...payload,
-    }));
-  }
+  try {
+    let error;
+    if (isEdit) {
+      ({ error } = await supa.from('appointments')
+        .update(payload)
+        .eq('id', _editingApptId)
+        .eq('dealer_id', dealerId));
+    } else {
+      ({ error } = await supa.from('appointments').insert({
+        dealer_id:   dealerId,
+        customer_id: null,
+        source:      'manual',
+        ...payload,
+      }));
+    }
 
-  _saving = false;
-  btn.disabled = false;
-  btn.textContent = isEdit ? 'Update Appointment' : 'Save Appointment';
-
-  if (error) {
-    msg.textContent = 'Save failed: ' + error.message;
+    if (error) {
+      msg.textContent = 'Save failed: ' + error.message;
+      msg.className = 'form-status error';
+    } else {
+      closeApptModal();
+      showToast(isEdit ? 'Appointment updated.' : 'Appointment saved.');
+      try { await loadCalendarData(dealerId); } catch (_) {}
+    }
+  } catch (ex) {
+    msg.textContent = 'Save failed: ' + ex.message;
     msg.className = 'form-status error';
-  } else {
-    closeApptModal();
-    showToast(isEdit ? 'Appointment updated.' : 'Appointment saved.');
-    try { await loadCalendarData(dealerId); } catch (_) {}
+  } finally {
+    _saving = false;
+    btn.disabled = false;
+    btn.textContent = isEdit ? 'Update Appointment' : 'Save Appointment';
   }
 }
 </script>
