@@ -348,9 +348,16 @@ serve(async (req) => {
       return json200({ skipped: true, reason: 'Active channel already registered', expiry: expiryMs })
     }
 
-    const accessToken = await getAccessToken(dealer.google_refresh_token as string)
-    const calendarId  = (dealer.google_calendar_email as string) || 'primary'
+    let accessToken: string
+    try {
+      accessToken = await getAccessToken(dealer.google_refresh_token as string)
+      console.log('[gcal-webhook] access token refreshed OK for dealer', dealerId)
+    } catch (tokenErr) {
+      console.error('[gcal-webhook] STEP FAILED — token refresh:', (tokenErr as Error).message)
+      return jsonErr('Token refresh failed: ' + (tokenErr as Error).message, 500)
+    }
 
+    const calendarId = (dealer.google_calendar_email as string) || 'primary'
     console.log('[gcal-webhook] setup starting for dealer', dealerId, 'calendar', calendarId)
 
     // ── Full event list → initial syncToken ───────────────────────────────
@@ -370,6 +377,7 @@ serve(async (req) => {
       })
       if (!listRes.ok) {
         const errBody = await listRes.text()
+        console.error('[gcal-webhook] STEP FAILED — event list HTTP', listRes.status, ':', errBody)
         throw new Error(`Event list failed (${listRes.status}): ${errBody}`)
       }
       const listJson = await listRes.json() as { nextPageToken?: string; nextSyncToken?: string }
@@ -377,15 +385,15 @@ serve(async (req) => {
       if (!pageToken) syncToken = listJson.nextSyncToken ?? null
     } while (pageToken)
 
-    console.log('[gcal-webhook] obtained syncToken for dealer', dealerId)
+    console.log('[gcal-webhook] syncToken obtained for dealer', dealerId)
 
     // ── Register push-notification channel ────────────────────────────────
     const channelId  = crypto.randomUUID()
     const webhookUrl = 'https://app.srisaamba.com/api/calendar-webhook'
 
-    console.log('[gcal-webhook] registering channel', channelId, '→', webhookUrl)
+    console.log('[gcal-webhook] STEP — registering watch channel', channelId, '→', webhookUrl, 'calendar:', calendarId)
 
-    const watchRes = await fetch(
+    const watchRes  = await fetch(
       `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
       {
         method:  'POST',
@@ -394,20 +402,33 @@ serve(async (req) => {
           id:      channelId,
           type:    'web_hook',
           address: webhookUrl,
-          token:   dealerId,   // echoed back as X-Goog-Channel-Token on every ping
+          token:   dealerId,
         }),
       },
     )
-    const watchJson = await watchRes.json() as {
-      id?:         string
-      resourceId?: string
-      expiration?: string
-      error?:      { code: number; message: string }
+    const watchRaw  = await watchRes.text()
+    console.log('[gcal-webhook] Google watch response HTTP', watchRes.status, ':', watchRaw)
+
+    let watchJson: { id?: string; resourceId?: string; expiration?: string; error?: { code: number; message: string; status?: string } }
+    try {
+      watchJson = JSON.parse(watchRaw)
+    } catch {
+      console.error('[gcal-webhook] STEP FAILED — watch response not JSON:', watchRaw)
+      // Non-fatal: return success:false so caller knows but don't 500
+      return json200({ success: false, reason: 'Watch registration returned non-JSON', raw: watchRaw })
     }
 
     if (watchJson.error || !watchJson.resourceId) {
-      console.error('[gcal-webhook] watch registration failed:', JSON.stringify(watchJson))
-      return jsonErr(watchJson.error?.message ?? 'Google watch registration failed — verify domain in Search Console', 500)
+      const errCode    = watchJson.error?.code ?? watchRes.status
+      const errMessage = watchJson.error?.message ?? 'no resourceId in response'
+      const errStatus  = watchJson.error?.status  ?? ''
+      console.error(
+        `[gcal-webhook] STEP FAILED — Google watch registration: HTTP ${errCode} ${errStatus} — ${errMessage}`,
+        '\nFull response:', watchRaw,
+        '\nFix: verify app.srisaamba.com in Google Cloud Console → APIs & Services → Domain Verification',
+      )
+      // Return 200 so the browser doesn't see a red 500 — the channel simply won't be active
+      return json200({ success: false, reason: errMessage, code: errCode, status: errStatus })
     }
 
     // ── Persist channel state + syncToken ─────────────────────────────────
@@ -419,7 +440,7 @@ serve(async (req) => {
     }).eq('id', dealerId)
 
     if (saveErr) {
-      console.error('[gcal-webhook] failed to save channel state:', saveErr.message, saveErr.details ?? '')
+      console.error('[gcal-webhook] STEP FAILED — save channel state:', saveErr.message, saveErr.details ?? '')
     } else {
       console.log('[gcal-webhook] channel registered — dealer:', dealerId, 'channel:', watchJson.id, 'expires:', watchJson.expiration)
     }
@@ -432,7 +453,7 @@ serve(async (req) => {
     })
 
   } catch (err) {
-    console.error('[gcal-webhook] setup error:', (err as Error).message)
+    console.error('[gcal-webhook] setup unhandled error:', (err as Error).message, (err as Error).stack)
     return jsonErr((err as Error).message, 500)
   }
 })
