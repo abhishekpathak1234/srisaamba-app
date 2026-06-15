@@ -1340,6 +1340,7 @@ async function saveTestDrive() {
     dealer_id:        dealerId,
     customer_id:      null,
     customer_name:    customerName,
+    customer_phone:   phone     || null,
     appointment_type: 'test_drive',
     vehicle:          vehicle   || null,
     scheduled_at:     new Date(dt).toISOString(),
@@ -1714,6 +1715,7 @@ async function saveAppt() {
     assigned_to_name: assigned || null,
     notes:            notes    || null,
     customer_name:    customerName,
+    customer_phone:   phone    || null,
   };
 
   try {
