@@ -1361,7 +1361,7 @@ async function saveTestDrive() {
   msg.textContent = '';
 
   // Insert appointment immediately — customer stub created async for speed
-  const { error } = await supa.from('appointments').insert({
+  const { data: newAppt, error } = await supa.from('appointments').insert({
     dealer_id:        dealerId,
     customer_id:      null,
     customer_name:    customerName,
@@ -1372,7 +1372,7 @@ async function saveTestDrive() {
     status:           status,
     assigned_to_name: assigned  || null,
     source:           'test_drive_sync',
-  });
+  }).select('id').single();
 
   _tdSaving = false;
 
@@ -1382,6 +1382,9 @@ async function saveTestDrive() {
     btn.disabled = false; btn.textContent = 'Book & Sync to Calendar';
     return;
   }
+
+  // Fire-and-forget Google Calendar sync
+  if (newAppt?.id) syncCalendar('create', newAppt.id, dealerId);
 
   // Show success state
   document.getElementById('td-success').style.display = '';
@@ -1652,6 +1655,8 @@ async function deleteAppt(id) {
   if (!confirm('Delete this appointment?')) return;
   const dealerId = window.currentDealership?.id;
   if (!dealerId) return;
+  // Sync to Google BEFORE DB delete — Edge Function needs the row to find google_event_id
+  syncCalendar('delete', id, dealerId);
   const { error } = await supa.from('appointments')
     .delete().eq('id', id).eq('dealer_id', dealerId);
   if (error) {
@@ -1660,8 +1665,6 @@ async function deleteAppt(id) {
     _calAppts = _calAppts.filter(a => a.id !== id);
     renderCalendar();
     showToast('Appointment deleted.');
-    // Fire-and-forget Google Calendar sync — never blocks UI
-    syncCalendar('delete', id, dealerId);
   }
 }
 
