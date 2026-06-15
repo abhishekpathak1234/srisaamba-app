@@ -11,23 +11,24 @@
 <script src="app.js"></script>
 <style>
   :root {
-    --bg: #F7F6F2;
-    --surface: #FFFFFF;
-    --surface2: #F0EFE9;
-    --ink: #1A1916;
-    --ink2: #6B6860;
-    --ink3: #A8A69E;
-    --border: rgba(0,0,0,.07);
-    --border2: rgba(0,0,0,.12);
+    --bg: #0a0908;
+    --surface: #131211;
+    --surface2: #1a1917;
+    --ink: #ffffff;
+    --ink2: #aaa9a6;
+    --ink3: #666462;
+    --border: rgba(255,255,255,.05);
+    --border2: #2d2b28;
     --orange: #FF5C1A;
-    --green: #1A7A50;
-    --red: #C02B2B;
+    --green: #4ade80;
+    --red: #f87171;
     --radius: 10px;
     --radius-lg: 16px;
     --font: 'Cabinet Grotesk', sans-serif;
     --mono: 'Instrument Mono', monospace;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
     font-family: var(--font);
     background: var(--bg);
@@ -36,31 +37,114 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 24px;
+    position: relative;
+    overflow-x: hidden;
   }
-  .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    padding: 36px 32px;
-    border-radius: var(--radius-lg);
+
+  /* Subtle grid overlay */
+  .grid-overlay {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    background-size: 44px 44px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Two-column layout */
+  .auth-layout {
+    display: flex;
     width: 100%;
-    max-width: 380px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 24px rgba(0,0,0,.06);
+    max-width: 1040px;
+    align-items: center;
+    gap: 60px;
+    z-index: 1;
+    position: relative;
   }
-  .logo {
-    display: flex; align-items: center; gap: 10px;
-    justify-content: center;
-    margin-bottom: 6px;
+
+  /* ── Left branding (desktop only) ── */
+  .auth-left {
+    flex: 1;
+    max-width: 460px;
+    display: none;
   }
-  .logo-mark {
-    width: 36px; height: 36px;
+  .auth-logo-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 52px;
+  }
+  .auth-logo-mark {
+    width: 38px; height: 38px;
     background: var(--orange);
     border-radius: 9px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 16px; font-weight: 800; color: white;
+    font-size: 15px; font-weight: 800; color: #fff;
+    flex-shrink: 0;
   }
-  .logo-text { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; }
-  .logo-text span { color: var(--orange); }
+  .auth-logo-name  { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; }
+  .auth-logo-name span { color: var(--orange); }
+  .auth-logo-sub   { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; color: var(--ink3); font-family: var(--mono); text-transform: uppercase; margin-top: 2px; }
+  .auth-tag        { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--orange); font-family: var(--mono); text-transform: uppercase; margin-bottom: 14px; }
+  .auth-heading    { font-size: 40px; font-weight: 800; line-height: 1.1; letter-spacing: -0.5px; margin-bottom: 18px; }
+  .auth-heading span { color: var(--orange); }
+  .auth-subtext    { font-size: 15px; color: var(--ink3); line-height: 1.65; margin-bottom: 38px; }
+  .auth-status     { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink3); }
+  .auth-status-dot { color: #22c55e; }
+
+  /* ── Right card ── */
+  .auth-right { width: 100%; max-width: 420px; flex-shrink: 0; position: relative; }
+
+  /* Subtle orange glow under the card */
+  .auth-right::after {
+    content: '';
+    position: absolute;
+    bottom: -14px; left: 8%; right: 8%;
+    height: 40px;
+    background: radial-gradient(ellipse, rgba(255,92,26,.16) 0%, transparent 70%);
+    filter: blur(14px);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    padding: 40px 36px;
+    border-radius: var(--radius-lg);
+    width: 100%;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 20px 60px rgba(0,0,0,.55);
+  }
+
+  /* Card logo — shown on mobile, hidden on desktop (left col shows it) */
+  .card-logo {
+    display: flex; align-items: center; gap: 10px;
+    justify-content: center;
+    margin-bottom: 4px;
+  }
+  .card-logo-mark {
+    width: 34px; height: 34px;
+    background: var(--orange);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; color: #fff;
+  }
+  .card-logo-text { font-size: 17px; font-weight: 800; letter-spacing: -0.4px; }
+  .card-logo-text span { color: var(--orange); }
+  .card-powered {
+    text-align: center;
+    font-size: 9px; color: var(--ink3);
+    font-family: var(--mono); letter-spacing: .1em;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.4px;
+    color: var(--ink); margin-bottom: 4px; text-align: center;
+  }
+
   .subtitle {
     text-align: center;
     font-size: 12px;
@@ -68,16 +152,18 @@
     font-family: var(--mono);
     margin-bottom: 26px;
   }
+
   label {
     display: block;
-    font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .08em;
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em;
     color: var(--ink3); font-family: var(--mono);
-    margin-bottom: 5px;
+    margin-bottom: 6px;
   }
+
   input {
     width: 100%;
-    padding: 11px 13px;
+    padding: 12px 14px;
     margin-bottom: 16px;
     background: var(--surface2);
     border: 1px solid var(--border2);
@@ -88,40 +174,45 @@
     outline: none;
     transition: border-color .15s, background .15s;
   }
-  input:focus { border-color: var(--orange); background: var(--surface); }
+  input:focus { border-color: var(--orange); background: #1f1e1c; }
   input::placeholder { color: var(--ink3); }
+
   button.primary {
     width: 100%;
-    padding: 12px;
-    background: var(--orange);
+    padding: 13px;
+    background: linear-gradient(90deg, #ff7a00 0%, #ff3d00 100%);
     color: white;
     border: none;
     border-radius: var(--radius);
     font-size: 14px; font-weight: 700;
     font-family: var(--font);
     cursor: pointer;
-    transition: background .15s, opacity .15s;
+    transition: opacity .15s, transform .1s;
   }
-  button.primary:hover { background: #e04800; }
-  button.primary:disabled { opacity: .6; cursor: not-allowed; }
+  button.primary:hover  { opacity: .88; }
+  button.primary:active { transform: scale(.99); }
+  button.primary:disabled { opacity: .45; cursor: not-allowed; }
+
   .divider {
     display: flex; align-items: center; gap: 10px;
-    margin-top: 14px;
-    font-size: 11px;
+    margin-top: 18px;
+    font-size: 10px;
     color: var(--ink3);
     font-family: var(--mono);
+    letter-spacing: .08em;
   }
   .divider::before, .divider::after {
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--border);
+    background: var(--border2);
   }
+
   button.google {
     width: 100%;
     margin-top: 14px;
-    padding: 11px;
-    background: var(--surface);
+    padding: 12px;
+    background: var(--surface2);
     color: var(--ink);
     border: 1px solid var(--border2);
     border-radius: var(--radius);
@@ -131,7 +222,8 @@
     display: flex; align-items: center; justify-content: center; gap: 9px;
     transition: background .15s, border-color .15s;
   }
-  button.google:hover { background: var(--surface2); }
+  button.google:hover { background: #222120; border-color: #3d3b38; }
+
   #message {
     text-align: center;
     margin-top: 14px;
@@ -139,59 +231,91 @@
     line-height: 1.5;
     min-height: 20px;
   }
-  #message.error { color: var(--red); }
+  #message.error   { color: var(--red); }
   #message.success { color: var(--green); }
+
   .switch-mode {
     text-align: center;
-    margin-top: 18px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border2);
     font-size: 13px;
-    color: var(--ink2);
+    color: var(--ink3);
   }
-  .switch-mode a {
-    color: var(--orange);
-    font-weight: 700;
-    cursor: pointer;
-    text-decoration: none;
-  }
+  .switch-mode a { color: var(--orange); font-weight: 700; cursor: pointer; text-decoration: none; }
   .switch-mode a:hover { text-decoration: underline; }
+
+  /* Desktop: show left col, hide in-card logo/title */
+  @media (min-width: 820px) {
+    .auth-left { display: block; }
+    .card-logo, .card-powered, .card-title { display: none; }
+  }
 </style>
 </head>
 <body>
 
-<div class="login-box">
-  <div class="logo">
-    <div class="logo-mark">AA</div>
-    <div class="logo-text">Auto <span>AI</span></div>
+<div class="grid-overlay"></div>
+
+<div class="auth-layout">
+
+  <!-- Left branding — desktop only, no JS -->
+  <div class="auth-left">
+    <div class="auth-logo-row">
+      <div class="auth-logo-mark">AA</div>
+      <div>
+        <div class="auth-logo-name">Auto <span>AI</span></div>
+        <div class="auth-logo-sub">Powered by Sri Saamba</div>
+      </div>
+    </div>
+    <div class="auth-tag">— Welcome back</div>
+    <h1 class="auth-heading">Your automation<br><span>command center.</span></h1>
+    <p class="auth-subtext">Sign in to monitor agents, capture leads after hours, and watch every workflow run in real time.</p>
+    <div class="auth-status">
+      <span class="auth-status-dot">●</span>&nbsp; All systems operational &nbsp;·&nbsp; SOC 2 &nbsp;·&nbsp; 99.99% uptime
+    </div>
   </div>
-  <div style="text-align:center;font-size:10px;color:var(--ink3);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:18px;">Powered by Sri Saamba</div>
-  <p class="subtitle" id="subtitle">Sign in to your dashboard</p>
 
-  <label for="email">Email</label>
-  <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+  <!-- Right: card — all existing IDs and onclick handlers untouched -->
+  <div class="auth-right">
+    <div class="login-box">
 
-  <label for="password">Password</label>
-  <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+      <!-- Mobile-only logo (hidden on desktop) -->
+      <div class="card-logo">
+        <div class="card-logo-mark">AA</div>
+        <div class="card-logo-text">Auto <span>AI</span></div>
+      </div>
+      <div class="card-powered">Powered by Sri Saamba</div>
+      <div class="card-title">Sign in</div>
 
-  <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
+      <p class="subtitle" id="subtitle">Sign in to your dashboard</p>
 
-  <div style="text-align:right;margin-top:-4px;margin-bottom:10px;">
-    <a id="forgot-link" style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;text-decoration:none;" onclick="handleForgotPassword()">Forgot Password?</a>
+      <label for="email">Email</label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+
+      <label for="password">Password</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+
+      <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
+
+      <div style="text-align:right;margin-top:8px;margin-bottom:6px;">
+        <a id="forgot-link" style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;text-decoration:none;" onclick="handleForgotPassword()">Forgot Password?</a>
+      </div>
+
+      <div class="divider">or</div>
+
+      <button class="google" onclick="loginWithGoogle()">
+        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+        Continue with Google
+      </button>
+
+      <p id="message"></p>
+
+      <div class="switch-mode" id="switch-mode">
+        Don't have an account? <a onclick="toggleMode()">Create one</a>
+      </div>
+    </div>
   </div>
 
-  <div class="divider">or</div>
-
-  <button class="google" onclick="loginWithGoogle()">
-    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
-    Continue with Google
-  </button>
-
-  <p id="message"></p>
-
-  <div class="switch-mode" id="switch-mode">
-    Don't have an account? <a onclick="toggleMode()">Create one</a>
-  </div>
 </div>
 
 <script>
