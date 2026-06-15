@@ -294,7 +294,7 @@ serve(async (req) => {
           const newRow = {
             dealer_id:        dealerId,
             customer_id:      null,
-            source:           'google_calendar',
+            source:           'manual',
             customer_name:    parsed.customer_name,
             appointment_type: parsed.appointment_type,
             scheduled_at:     parsed.scheduled_at,
@@ -433,7 +433,7 @@ serve(async (req) => {
               .insert({
                 dealer_id:        dealerId,
                 customer_id:      null,
-                source:           'google_calendar',
+                source:           'manual',
                 customer_name:    parsed.customer_name,
                 appointment_type: parsed.appointment_type,
                 scheduled_at:     parsed.scheduled_at,
