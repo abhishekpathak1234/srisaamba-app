@@ -1783,14 +1783,22 @@ function syncCalendar(action, appointmentId, dealerId) {
 
 // ── Settings: load current connection status ─────────────────────────────
 async function loadGoogleCalendarStatus() {
-  const dealerId = window.currentDealership?.id;
-  if (!dealerId) return;
-
   const loadEl  = document.getElementById('gcal-loading');
   const connEl  = document.getElementById('gcal-connected');
   const discEl  = document.getElementById('gcal-disconnected');
   const badgeEl = document.getElementById('gcal-status-badge');
   if (!loadEl) return; // settings page not in DOM yet
+
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) {
+    // Dealership not loaded yet — show disconnected state so UI isn't stuck on Loading
+    loadEl.style.display = 'none';
+    if (connEl)  connEl.style.display  = 'none';
+    if (discEl)  discEl.style.display  = '';
+    if (badgeEl) badgeEl.innerHTML =
+      '<span style="font-size:11px;font-weight:700;background:var(--surface2);color:var(--ink3);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Not Connected</span>';
+    return;
+  }
 
   loadEl.style.display = '';
   if (connEl)  connEl.style.display  = 'none';
