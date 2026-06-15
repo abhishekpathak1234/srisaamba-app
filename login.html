@@ -195,6 +195,21 @@
 </div>
 
 <script>
+  // ── Recovery intercept — must run before ANY session check ─────────────
+  // If Supabase redirected the recovery link here (site URL fallback), or if
+  // PASSWORD_RECOVERY fires while this page is open, forward to the right page.
+  (function () {
+    const h = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const q = new URLSearchParams(window.location.search);
+    if (h.get('type') === 'recovery' || q.has('code')) {
+      window.location.replace('reset-password.html' + window.location.search + window.location.hash);
+    }
+  })();
+
+  supa.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') window.location.replace('reset-password.html');
+  });
+
   let mode = 'login'; // 'login' or 'signup'
 
   // Already signed in? Go straight to the dashboard
