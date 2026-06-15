@@ -399,6 +399,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       document.getElementById('page-sub').textContent = today + ' · Demo Mode';
       document.getElementById('badge-actions').textContent = "8";
       document.getElementById('badge-missed').textContent = "18";
+      document.getElementById('badge-test-drives').textContent = "5";
       document.documentElement.style.visibility = 'visible';
       return; 
     }
@@ -515,7 +516,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
       <div class="sb-item" data-page="smart-inbox" onclick="goTo('smart-inbox')">Smart Inbox</div>
       <div class="sb-item" data-page="action-center" onclick="goTo('action-center')">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
       <div class="sb-section">Business</div>
-      <div class="sb-item" data-page="test-drives" onclick="goTo('test-drives')">Test Drives</div>
+      <div class="sb-item" data-page="test-drives" onclick="goTo('test-drives')">Test Drives <span class="sb-badge orange" id="badge-test-drives">0</span></div>
       <div class="sb-item" data-page="missed-calls" onclick="goTo('missed-calls')">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
       <div class="sb-item" data-page="performance" onclick="goTo('performance')">Performance</div>
       <div class="sb-section">Account</div>
@@ -1783,6 +1784,25 @@ async function saveAppt() {
     btn.textContent = isEdit ? 'Update Appointment' : 'Save Appointment';
   }
 }
+</script>
+
+<!-- ── LIVE DATA (badges etc.) ───────────────────────────────────────── -->
+<script>
+window.loadLiveData = async function(dealerId) {
+  if (!dealerId) return;
+  try {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const { count } = await supa
+      .from('appointments')
+      .select('id', { count: 'exact', head: true })
+      .eq('dealer_id', dealerId)
+      .eq('appointment_type', 'test_drive')
+      .gte('scheduled_at', todayStart.toISOString());
+    const el = document.getElementById('badge-test-drives');
+    if (el) el.textContent = count ?? 0;
+  } catch (_) {}
+};
 </script>
 
 <!-- ── GOOGLE CALENDAR INTEGRATION ───────────────────────────────────── -->
