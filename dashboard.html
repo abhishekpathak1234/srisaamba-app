@@ -980,12 +980,30 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
             <div class="sh-soon">Coming soon</div>
           </div>
 
-          <!-- Integrations -->
-          <div class="sh-card">
-            <div class="sh-card-icon">🔌</div>
-            <div class="sh-card-title">Integrations</div>
-            <div class="sh-card-desc">CRM, DMS &amp; phone systems</div>
-            <div class="sh-soon">Coming soon</div>
+          <!-- Google Calendar Integration -->
+          <div class="sh-card sh-card-full" id="gcal-card">
+            <div class="sh-card-head">
+              <div class="sh-card-icon">📅</div>
+              <div style="flex:1">
+                <div class="sh-card-title">Google Calendar</div>
+                <div class="sh-card-desc">Sync appointments to your Google Calendar automatically</div>
+              </div>
+              <div id="gcal-status-badge"></div>
+            </div>
+            <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+              <div id="gcal-loading" style="font-size:13px;color:var(--ink3);">Loading…</div>
+              <div id="gcal-disconnected" style="display:none;">
+                <p style="font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.5;">Connect your Google Calendar to automatically sync new, updated, and deleted appointments — all server-side, no tokens stored in the browser.</p>
+                <button class="btn-primary" onclick="connectGoogleCalendar()">Connect Google Calendar</button>
+              </div>
+              <div id="gcal-connected" style="display:none;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+                  <span style="font-size:12px;color:var(--green);font-weight:700;display:flex;align-items:center;gap:5px;">● Connected</span>
+                  <span style="font-size:13px;color:var(--ink2);" id="gcal-email"></span>
+                </div>
+                <button class="tb-btn ghost" onclick="disconnectGoogleCalendar()">Disconnect</button>
+              </div>
+            </div>
           </div>
 
           <!-- Billing -->
@@ -1030,6 +1048,9 @@ function activatePage(hash) {
   }
   if (route.pageId === 'today-activity' && typeof loadTodayActivityPage === 'function') {
     loadTodayActivityPage();
+  }
+  if (route.pageId === 'settings' && typeof loadGoogleCalendarStatus === 'function') {
+    loadGoogleCalendarStatus();
   }
 }
 
@@ -1624,6 +1645,8 @@ async function deleteAppt(id) {
     _calAppts = _calAppts.filter(a => a.id !== id);
     renderCalendar();
     showToast('Appointment deleted.');
+    // Fire-and-forget Google Calendar sync — never blocks UI
+    syncCalendar('delete', id, dealerId);
   }
 }
 
@@ -1708,29 +1731,34 @@ async function saveAppt() {
   };
 
   try {
-    let error;
+    let error, _createdApptId;
     if (isEdit) {
       ({ error } = await supa.from('appointments')
         .update(payload)
         .eq('id', _editingApptId)
         .eq('dealer_id', dealerId));
     } else {
-      ({ error } = await supa.from('appointments').insert({
+      const { data: _ins, error: _e } = await supa.from('appointments').insert({
         dealer_id:   dealerId,
         customer_id: null,
         source:      'manual',
         ...payload,
-      }));
+      }).select('id').single();
+      error           = _e;
+      _createdApptId  = _ins?.id;
     }
 
     if (error) {
       msg.textContent = 'Save failed: ' + error.message;
       msg.className = 'form-status error';
     } else {
+      const _gcalId = isEdit ? _editingApptId : _createdApptId;
       closeApptModal();
       showToast(isEdit ? 'Appointment updated.' : 'Appointment saved.');
       try { await loadCalendarData(dealerId); } catch (_) {}
       if (typeof window.loadLiveData === 'function') window.loadLiveData(dealerId);
+      // Fire-and-forget Google Calendar sync — never blocks UI
+      if (_gcalId) syncCalendar(isEdit ? 'edit' : 'create', _gcalId, dealerId);
     }
   } catch (ex) {
     msg.textContent = 'Save failed: ' + ex.message;
@@ -1739,6 +1767,82 @@ async function saveAppt() {
     _saving = false;
     btn.disabled = false;
     btn.textContent = isEdit ? 'Update Appointment' : 'Save Appointment';
+  }
+}
+</script>
+
+<!-- ── GOOGLE CALENDAR INTEGRATION ───────────────────────────────────── -->
+<script>
+// ── Fire-and-forget sync helper ──────────────────────────────────────────
+// Called after every create / edit / delete — never awaited, never blocks UI.
+function syncCalendar(action, appointmentId, dealerId) {
+  supa.functions.invoke('sync-google-calendar', {
+    body: { action, appointment_id: appointmentId, dealer_id: dealerId },
+  }).catch(() => { /* silent — Google Calendar outage must never affect Auto AI */ });
+}
+
+// ── Settings: load current connection status ─────────────────────────────
+async function loadGoogleCalendarStatus() {
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) return;
+
+  const loadEl  = document.getElementById('gcal-loading');
+  const connEl  = document.getElementById('gcal-connected');
+  const discEl  = document.getElementById('gcal-disconnected');
+  const badgeEl = document.getElementById('gcal-status-badge');
+  if (!loadEl) return; // settings page not in DOM yet
+
+  loadEl.style.display = '';
+  if (connEl)  connEl.style.display  = 'none';
+  if (discEl)  discEl.style.display  = 'none';
+
+  const { data } = await supa
+    .from('dealerships')
+    .select('google_calendar_connected, google_calendar_email')
+    .eq('id', dealerId)
+    .single();
+
+  loadEl.style.display = 'none';
+
+  if (data?.google_calendar_connected) {
+    if (connEl)  connEl.style.display  = '';
+    if (discEl)  discEl.style.display  = 'none';
+    const emailEl = document.getElementById('gcal-email');
+    if (emailEl) emailEl.textContent = data.google_calendar_email || '';
+    if (badgeEl) badgeEl.innerHTML =
+      '<span style="font-size:11px;font-weight:700;background:rgba(26,122,80,.12);color:var(--green);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Connected</span>';
+  } else {
+    if (connEl)  connEl.style.display  = 'none';
+    if (discEl)  discEl.style.display  = '';
+    if (badgeEl) badgeEl.innerHTML =
+      '<span style="font-size:11px;font-weight:700;background:var(--surface2);color:var(--ink3);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Not Connected</span>';
+  }
+}
+
+// ── Settings: start OAuth flow ────────────────────────────────────────────
+function connectGoogleCalendar() {
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) { showToast('Dealership not loaded — try refreshing.', 'error'); return; }
+  // Redirect to the Edge Function which issues the Google consent redirect.
+  // The function returns after OAuth with the session stored server-side.
+  window.location.href = SUPABASE_URL + '/functions/v1/google-calendar-auth?action=connect&dealer_id=' + dealerId;
+}
+
+// ── Settings: disconnect ──────────────────────────────────────────────────
+async function disconnectGoogleCalendar() {
+  if (!confirm('Disconnect Google Calendar?\n\nExisting Google Calendar events will not be deleted.')) return;
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) return;
+
+  const { error } = await supa.functions.invoke('google-calendar-auth', {
+    body: { action: 'disconnect', dealer_id: dealerId },
+  });
+
+  if (error) {
+    showToast('Disconnect failed: ' + error.message, 'error');
+  } else {
+    showToast('Google Calendar disconnected.');
+    loadGoogleCalendarStatus();
   }
 }
 </script>
