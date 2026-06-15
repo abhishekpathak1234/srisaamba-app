@@ -1048,6 +1048,11 @@ function activatePage(hash) {
   if (window.isDemoActive) applyDemoUIData(route.pageId);
   if (route.pageId === 'profile'       && typeof loadProfilePage       === 'function') loadProfilePage();
   if (route.pageId === 'calendar' && window.currentDealership?.id) {
+    // Pull latest Google Calendar events before rendering so new events
+    // appear without a full page refresh.
+    if (typeof _gcalAutoSync === 'function' && window.currentDealership.google_calendar_connected) {
+      _gcalAutoSync(window.currentDealership.id);
+    }
     // Destructive sidebar reset: close modals, wipe transient form state, snap back to Day/Today
     if (typeof closeApptModal === 'function') closeApptModal();
     if (typeof closeTdModal   === 'function') closeTdModal();
