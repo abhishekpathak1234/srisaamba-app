@@ -128,7 +128,7 @@ window.loadLiveData = async function (dealerId) {
   const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(dayStart.getTime() + 86400000);
 
-  const [callsToday, todays, allAppts, openTasks, recentCalls, dm] = await Promise.all([
+  const [callsToday, todays, allAppts, openTasks, recentCalls, dm, upcomingTD] = await Promise.all([
     supa.from('call_logs').select('id', { count: 'exact', head: true })
       .eq('dealer_id', dealerId).eq('call_status', 'answered').gte('created_at', dayStart.toISOString()),
     supa.from('appointments').select('*, customers(first_name,last_name,phone,lead_source)')
@@ -140,6 +140,8 @@ window.loadLiveData = async function (dealerId) {
       .eq('dealer_id', dealerId).eq('status', 'open').order('created_at', { ascending: false }),
     supa.from('call_logs').select('*').eq('dealer_id', dealerId).order('created_at', { ascending: false }).limit(6),
     fetchDealerMetrics(dealerId),
+    supa.from('appointments').select('id', { count: 'exact', head: true })
+      .eq('dealer_id', dealerId).eq('appointment_type', 'test_drive').gte('scheduled_at', dayStart.toISOString()),
   ]);
 
   const tasks = openTasks.data || [];
@@ -167,6 +169,7 @@ window.loadLiveData = async function (dealerId) {
   // Sidebar badges
   setText('badge-actions', tasks.length);
   setText('badge-missed', dm.recoveredWeek);
+  setText('badge-test-drives', upcomingTD.count ?? 0);
 
   // Derive live KPI values from today's calendar data
   const tdToday     = (todays.data || []).filter(a => a.appointment_type === 'test_drive');

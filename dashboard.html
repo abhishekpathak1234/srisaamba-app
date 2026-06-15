@@ -1786,25 +1786,6 @@ async function saveAppt() {
 }
 </script>
 
-<!-- ── LIVE DATA (badges etc.) ───────────────────────────────────────── -->
-<script>
-window.loadLiveData = async function(dealerId) {
-  if (!dealerId) return;
-  try {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const { count } = await supa
-      .from('appointments')
-      .select('id', { count: 'exact', head: true })
-      .eq('dealer_id', dealerId)
-      .eq('appointment_type', 'test_drive')
-      .gte('scheduled_at', todayStart.toISOString());
-    const el = document.getElementById('badge-test-drives');
-    if (el) el.textContent = count ?? 0;
-  } catch (_) {}
-};
-</script>
-
 <!-- ── GOOGLE CALENDAR INTEGRATION ───────────────────────────────────── -->
 <script>
 // ── Fire-and-forget sync helper ──────────────────────────────────────────
