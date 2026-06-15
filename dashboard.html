@@ -1872,24 +1872,47 @@ async function connectGoogleCalendar() {
     return;
   }
 
-  // supa.functions.invoke() automatically attaches the session JWT so the
-  // Edge Function can verify the caller. The function returns { url } —
-  // we then redirect the browser to Google's consent screen.
-  const { data, error } = await supa.functions.invoke('google-calendar-auth', {
-    body: { action: 'connect', dealer_id: dealerId },
-  });
+  console.log('[connectGoogleCalendar] starting — dealerId:', dealerId);
 
-  if (error) {
-    console.error('[connectGoogleCalendar] invoke failed:', error.message, error.context ?? error);
-    showToast('Could not start Google Calendar connect: ' + error.message, 'error');
-    return;
-  }
+  try {
+    const { data: sessionData } = await supa.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    console.log('[connectGoogleCalendar] session token present:', !!token);
 
-  if (data?.url) {
-    window.location.href = data.url;
-  } else {
-    console.warn('[connectGoogleCalendar] unexpected response:', data);
-    showToast('Unexpected response from server — please try again.', 'error');
+    const res = await fetch(
+      'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-auth',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (token || ''),
+          'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
+        },
+        body: JSON.stringify({ action: 'connect', dealer_id: dealerId }),
+      }
+    );
+
+    console.log('[connectGoogleCalendar] response status:', res.status);
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('[connectGoogleCalendar] non-2xx response:', res.status, text);
+      showToast('Could not start Google Calendar connect (' + res.status + '). Check console.', 'error');
+      return;
+    }
+
+    const result = await res.json();
+    console.log('[connectGoogleCalendar] response data:', result);
+
+    if (result?.url) {
+      window.location.href = result.url;
+    } else {
+      console.warn('[connectGoogleCalendar] no URL in response:', result);
+      showToast('Server responded but returned no OAuth URL — check console for details.', 'error');
+    }
+  } catch (err) {
+    console.error('[connectGoogleCalendar] fetch error:', err);
+    showToast('Connection error: ' + (err.message || String(err)), 'error');
   }
 }
 
@@ -1899,15 +1922,35 @@ async function disconnectGoogleCalendar() {
   const dealerId = window.currentDealership?.id;
   if (!dealerId) return;
 
-  const { error } = await supa.functions.invoke('google-calendar-auth', {
-    body: { action: 'disconnect', dealer_id: dealerId },
-  });
+  try {
+    const { data: sessionData } = await supa.auth.getSession();
+    const token = sessionData?.session?.access_token;
 
-  if (error) {
-    showToast('Disconnect failed: ' + error.message, 'error');
-  } else {
+    const res = await fetch(
+      'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-auth',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (token || ''),
+          'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
+        },
+        body: JSON.stringify({ action: 'disconnect', dealer_id: dealerId }),
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      console.error('[disconnectGoogleCalendar] non-2xx response:', res.status, text);
+      showToast('Disconnect failed (' + res.status + '). Check console.', 'error');
+      return;
+    }
+
     showToast('Google Calendar disconnected.');
     loadGoogleCalendarStatus();
+  } catch (err) {
+    console.error('[disconnectGoogleCalendar] fetch error:', err);
+    showToast('Disconnect error: ' + (err.message || String(err)), 'error');
   }
 }
 
