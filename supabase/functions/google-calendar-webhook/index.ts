@@ -301,7 +301,7 @@ serve(async (req) => {
             vehicle:          parsed.vehicle,
             notes:            parsed.notes,
             google_event_id:  evt.id,
-            status:           'Confirmed',
+            status:           'confirmed',
           }
 
           console.log('[gcal-webhook] inserting new appointment from Google event:', evt.id, JSON.stringify(newRow))
@@ -440,7 +440,7 @@ serve(async (req) => {
                 vehicle:          parsed.vehicle,
                 notes:            parsed.notes,
                 google_event_id:  evt.id,
-                status:           'Confirmed',
+                status:           'confirmed',
               })
             if (insErr) {
               console.error('[gcal-webhook] backfill insert error:', evt.id,
