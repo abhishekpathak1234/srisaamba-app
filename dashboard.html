@@ -1650,7 +1650,7 @@ function openApptModal(appt) {
 
   if (appt) {
     document.getElementById('am-customer').value = appt.customer_name || _calCustName(appt);
-    document.getElementById('am-phone').value    = appt.customers?.phone || '';
+    document.getElementById('am-phone').value    = appt.customer_phone || appt.customers?.phone || '';
     document.getElementById('am-vehicle').value  = appt.vehicle || '';
     document.getElementById('am-type').value     = appt.appointment_type || 'test_drive';
     document.getElementById('am-assigned').value = appt.assigned_to_name || '';
