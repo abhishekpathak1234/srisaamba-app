@@ -484,6 +484,12 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     if (activeHash === 'settings' && typeof loadGoogleCalendarStatus === 'function') {
       loadGoogleCalendarStatus();
     }
+    // Auto-sync Google Calendar on every login regardless of which page is open.
+    // sessionStorage guard prevents double-firing if applyDealership is called twice.
+    if (d.google_calendar_connected && !sessionStorage.getItem('_gcal_synced')) {
+      sessionStorage.setItem('_gcal_synced', '1');
+      setTimeout(() => { if (typeof _gcalAutoSync === 'function') _gcalAutoSync(d.id); }, 200);
+    }
   }
 </script>
 
@@ -1784,6 +1790,31 @@ function syncCalendar(action, appointmentId, dealerId) {
   }).catch(() => { /* silent — Google Calendar outage must never affect Auto AI */ });
 }
 
+// ── Google Calendar: shared auto-sync (setup + backfill) ─────────────────
+// Called on every login (via applyDealership) AND on every Settings load.
+// Safe to call multiple times — both actions are idempotent server-side.
+async function _gcalAutoSync(dealerId) {
+  if (!dealerId) return;
+  try {
+    const { data: sd } = await supa.auth.getSession();
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + (sd?.session?.access_token || ''),
+      'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
+    };
+    const base = 'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook';
+    await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'setup',    dealer_id: dealerId }) });
+    const r      = await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'backfill', dealer_id: dealerId }) });
+    const result = await r.json().catch(() => ({}));
+    console.log('[_gcalAutoSync] backfill result:', result);
+    if (result.inserted || result.updated) {
+      if (typeof loadCalendarData === 'function') loadCalendarData(dealerId);
+    }
+  } catch (err) {
+    console.error('[_gcalAutoSync] error:', err);
+  }
+}
+
 // ── Settings: load current connection status ─────────────────────────────
 // Safe to call at any time — guards against missing dealership ID and
 // only selects columns guaranteed to exist in the dealerships table.
@@ -1845,25 +1876,9 @@ async function loadGoogleCalendarStatus() {
     if (emailEl) emailEl.textContent = data.google_calendar_email || '';
     _gcalSetBadge(badgeEl, true);
 
-    // Fire-and-forget: register push channel + backfill this week's events.
-    // Both are idempotent — safe to re-run on every settings load.
-    ;(async () => {
-      try {
-        const { data: sd } = await supa.auth.getSession();
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + (sd?.session?.access_token || ''),
-          'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
-        };
-        const base = 'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook';
-        await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'setup',    dealer_id: dealerId }) });
-        const r = await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'backfill', dealer_id: dealerId }) });
-        const result = await r.json().catch(() => ({}));
-        if (result.inserted || result.updated) {
-          if (typeof loadCalendarData === 'function') loadCalendarData(dealerId);
-        }
-      } catch { /* fire-and-forget — failures visible in Supabase logs */ }
-    })();
+    // Fire-and-forget: setup channel + backfill. Always runs on Settings load
+    // (not guarded by sessionStorage so Settings is always fresh).
+    _gcalAutoSync(dealerId);
   } else {
     if (connEl) connEl.style.display = 'none';
     if (discEl) discEl.style.display = '';
