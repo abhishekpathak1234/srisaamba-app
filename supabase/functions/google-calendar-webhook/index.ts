@@ -63,31 +63,50 @@ async function getAccessToken(refreshToken: string): Promise<string> {
   return json.access_token as string
 }
 
+// Valid values for the appointments_appointment_type_check DB constraint
+const VALID_APPT_TYPES = new Set(['test_drive', 'service', 'trade_in_inspection'])
+
 /**
  * Parses the Google Calendar event summary and description back into
  * appointment fields.  Outbound sync writes:
  *   summary:     "Customer Name (Appointment Type)"
  *   description: "Vehicle: Honda Civic\nNotes: Some note"
+ *
+ * Plain Google Calendar events (no special format) are also accepted:
+ *   customer_name    → raw event summary, or 'Calendar Event' if blank
+ *   appointment_type → parsed type if valid, otherwise 'test_drive'
+ *   scheduled_at     → event start time; falls back to current time so
+ *                       no event is ever dropped for lacking a timestamp
  */
 function parseGCalEvent(evt: GCalEvent): {
   customer_name:    string
   appointment_type: string
-  scheduled_at:     string | null
+  scheduled_at:     string
   notes:            string | null
   vehicle:          string | null
 } {
   // ── Parse summary: "Name (Type)" ─────────────────────────────────────
-  const raw          = (evt.summary ?? '').trim()
-  const parenMatch   = raw.match(/^(.*?)\s*\(([^)]+)\)\s*$/)
-  const customer_name    = parenMatch ? parenMatch[1].trim() || 'Google Calendar Event' : raw || 'Google Calendar Event'
-  const appointment_type = parenMatch ? parenMatch[2].trim().toLowerCase().replace(/\s+/g, '_') : 'other'
+  const raw        = (evt.summary ?? '').trim()
+  const parenMatch = raw.match(/^(.*?)\s*\(([^)]+)\)\s*$/)
+  const customer_name = parenMatch
+    ? (parenMatch[1].trim() || raw || 'Calendar Event')
+    : (raw || 'Calendar Event')
+
+  const parsedType = parenMatch
+    ? parenMatch[2].trim().toLowerCase().replace(/\s+/g, '_')
+    : ''
+  const appointment_type = VALID_APPT_TYPES.has(parsedType) ? parsedType : 'test_drive'
 
   // ── Parse description: "Vehicle: X\nNotes: Y" ─────────────────────────
   const desc    = evt.description ?? ''
   const vehicle = desc.match(/^Vehicle:\s*(.+)$/im)?.[1]?.trim() ?? null
-  const notes   = desc.match(/^Notes:\s*(.+)$/im)?.[1]?.trim() ?? (desc || null)
+  const notes   = desc.match(/^Notes:\s*(.+)$/im)?.[1]?.trim() ?? (desc.trim() || null)
 
-  const scheduled_at = evt.start?.dateTime ?? evt.start?.date ?? null
+  // ── Start time — never null; all-day events get 09:00 local-ish ───────
+  const scheduled_at =
+    evt.start?.dateTime ??
+    (evt.start?.date ? evt.start.date + 'T09:00:00' : null) ??
+    new Date().toISOString()
 
   return { customer_name, appointment_type, scheduled_at, notes, vehicle }
 }
@@ -238,10 +257,6 @@ serve(async (req) => {
 
         // ── CREATED OR UPDATED ──────────────────────────────────────────
         const parsed = parseGCalEvent(evt)
-        if (!parsed.scheduled_at) {
-          console.warn('[gcal-webhook] event', evt.id, 'has no start time — skipping')
-          continue
-        }
 
         // Check whether we already have an appointment row for this Google event
         const { data: existing, error: lookupErr } = await supa
@@ -389,7 +404,6 @@ serve(async (req) => {
           if (evt.status === 'cancelled') { skipped++; continue }
 
           const parsed = parseGCalEvent(evt)
-          if (!parsed.scheduled_at) { skipped++; continue }
 
           const { data: existing, error: lookupErr } = await supa
             .from('appointments')
@@ -429,7 +443,9 @@ serve(async (req) => {
                 status:           'Confirmed',
               })
             if (insErr) {
-              console.error('[gcal-webhook] backfill insert error:', evt.id, insErr.message, insErr.details ?? '')
+              console.error('[gcal-webhook] backfill insert error:', evt.id,
+                '|', insErr.message, insErr.details ?? '', insErr.hint ?? '',
+                '| row:', JSON.stringify({ appointment_type: parsed.appointment_type, scheduled_at: parsed.scheduled_at, customer_name: parsed.customer_name }))
               skipped++
             } else { inserted++ }
           }
