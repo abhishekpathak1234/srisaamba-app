@@ -6,15 +6,11 @@
  *   POST (from Google — X-Goog-Resource-State header present)
  *        → Validation ping (state=sync): acknowledge 200 immediately.
  *        → Change ping (state=exists):   fetch incremental diff via
- *          syncToken, update appointments.scheduled_at for changed events,
- *          clear google_event_id for deleted events, rotate syncToken.
+ *          syncToken, upsert appointments for changed events, rotate token.
  *
  *   POST { action: 'setup', dealer_id }
- *        → Full event list to obtain initial syncToken, then registers a
- *          push-notification channel with Google.  Skipped if an active
- *          channel already exists (expiry > 1 hour away).
- *          Called automatically from google-calendar-auth callback and
- *          from the frontend loadGoogleCalendarStatus on Settings load.
+ *        → Full event list → initial syncToken → register push channel.
+ *          Skipped if an active channel already exists (expiry > 1 hour).
  *
  * Deploy with: supabase functions deploy google-calendar-webhook --no-verify-jwt
  *
@@ -35,6 +31,18 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
+// ── Types ─────────────────────────────────────────────────────────────────
+
+interface GCalEvent {
+  id:           string
+  status:       string       // 'confirmed' | 'tentative' | 'cancelled'
+  summary?:     string
+  description?: string
+  start?:       { dateTime?: string; date?: string }
+  end?:         { dateTime?: string; date?: string }
+  updated?:     string
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 async function getAccessToken(refreshToken: string): Promise<string> {
@@ -53,6 +61,35 @@ async function getAccessToken(refreshToken: string): Promise<string> {
     throw new Error(`Token refresh failed: ${json.error_description ?? json.error ?? 'unknown'}`)
   }
   return json.access_token as string
+}
+
+/**
+ * Parses the Google Calendar event summary and description back into
+ * appointment fields.  Outbound sync writes:
+ *   summary:     "Customer Name (Appointment Type)"
+ *   description: "Vehicle: Honda Civic\nNotes: Some note"
+ */
+function parseGCalEvent(evt: GCalEvent): {
+  customer_name:    string
+  appointment_type: string
+  scheduled_at:     string | null
+  notes:            string | null
+  vehicle:          string | null
+} {
+  // ── Parse summary: "Name (Type)" ─────────────────────────────────────
+  const raw          = (evt.summary ?? '').trim()
+  const parenMatch   = raw.match(/^(.*?)\s*\(([^)]+)\)\s*$/)
+  const customer_name    = parenMatch ? parenMatch[1].trim() || 'Google Calendar Event' : raw || 'Google Calendar Event'
+  const appointment_type = parenMatch ? parenMatch[2].trim().toLowerCase().replace(/\s+/g, '_') : 'other'
+
+  // ── Parse description: "Vehicle: X\nNotes: Y" ─────────────────────────
+  const desc    = evt.description ?? ''
+  const vehicle = desc.match(/^Vehicle:\s*(.+)$/im)?.[1]?.trim() ?? null
+  const notes   = desc.match(/^Notes:\s*(.+)$/im)?.[1]?.trim() ?? (desc || null)
+
+  const scheduled_at = evt.start?.dateTime ?? evt.start?.date ?? null
+
+  return { customer_name, appointment_type, scheduled_at, notes, vehicle }
 }
 
 const ok200   = () => new Response('ok', { status: 200, headers: CORS })
@@ -81,66 +118,61 @@ serve(async (req) => {
 
   // ─────────────────────────────────────────────────────────────────────
   // PATH A: Google push-notification ping
-  // Identified by the presence of X-Goog-Resource-State header.
-  // Google sends no JSON body — everything is in headers.
   // ─────────────────────────────────────────────────────────────────────
   const resourceState = req.headers.get('x-goog-resource-state')
 
   if (resourceState !== null) {
-    const channelId = req.headers.get('x-goog-channel-id')      // UUID we generated at setup
-    const token     = req.headers.get('x-goog-channel-token')   // dealer_id we passed as token
+    const channelId  = req.headers.get('x-goog-channel-id')
+    const dealerId   = req.headers.get('x-goog-channel-token')  // we set this to dealer_id at setup
     const resourceId = req.headers.get('x-goog-resource-id')
 
-    console.log('[gcal-webhook] ping received —',
+    console.log('[gcal-webhook] ping —',
       'state:', resourceState,
-      'channelId:', channelId,
-      'token/dealerId:', token,
-      'resourceId:', resourceId,
+      'channel:', channelId,
+      'dealer:', dealerId,
+      'resource:', resourceId,
     )
 
-    // ── Validation ping: Google sends this once when channel is registered ──
+    // Validation ping — acknowledge immediately
     if (resourceState === 'sync') {
-      console.log('[gcal-webhook] validation ping acknowledged')
+      console.log('[gcal-webhook] validation ping OK')
       return ok200()
     }
 
-    // ── Change ping: one or more events changed ───────────────────────────
-    const dealerId = token
     if (!dealerId) {
-      console.warn('[gcal-webhook] change ping missing x-goog-channel-token — cannot identify dealer')
-      return ok200() // always 200 to Google to prevent retry storms
+      console.warn('[gcal-webhook] change ping has no x-goog-channel-token — cannot route to dealer')
+      return ok200()
     }
 
     try {
+      // ── Fetch dealer credentials ──────────────────────────────────────
       const { data: dealer, error: dealerErr } = await supa
         .from('dealerships')
         .select('google_refresh_token, google_sync_token, google_calendar_email')
         .eq('id', dealerId)
         .single()
 
-      if (dealerErr || !dealer) {
-        console.error('[gcal-webhook] dealer lookup failed:', dealerErr?.message)
+      if (dealerErr) {
+        console.error('[gcal-webhook] dealer lookup error:', dealerErr.message, 'code:', dealerErr.code)
         return ok200()
       }
-
-      if (!dealer.google_refresh_token) {
-        console.warn('[gcal-webhook] dealer has no refresh token — skipping')
+      if (!dealer?.google_refresh_token) {
+        console.warn('[gcal-webhook] dealer', dealerId, 'has no refresh token')
         return ok200()
       }
 
       const accessToken = await getAccessToken(dealer.google_refresh_token as string)
       const calendarId  = (dealer.google_calendar_email as string) || 'primary'
 
-      // ── Fetch incremental event list using stored syncToken ─────────────
+      // ── Fetch incremental event list ──────────────────────────────────
       const syncUrl = new URL(
         `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
       )
       if (dealer.google_sync_token) {
         syncUrl.searchParams.set('syncToken', dealer.google_sync_token as string)
       } else {
-        // No syncToken — pull recent events as fallback
-        syncUrl.searchParams.set('maxResults', '50')
-        syncUrl.searchParams.set('orderBy',    'updated')
+        syncUrl.searchParams.set('maxResults',   '50')
+        syncUrl.searchParams.set('orderBy',      'updated')
         syncUrl.searchParams.set('singleEvents', 'true')
       }
 
@@ -148,83 +180,126 @@ serve(async (req) => {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
 
-      // 410 Gone = syncToken expired — clear it so next ping does a fresh full sync
+      // 410 = syncToken stale — clear and let the next ping do a full re-sync
       if (eventsRes.status === 410) {
-        console.warn('[gcal-webhook] syncToken expired for dealer', dealerId, '— clearing for re-sync')
-        await supa.from('dealerships')
-          .update({
-            google_sync_token:  null,
-            google_channel_id:  null,   // force channel re-registration on next Settings load
-            google_resource_id: null,
-          })
+        console.warn('[gcal-webhook] syncToken expired for dealer', dealerId, '— resetting')
+        const { error: resetErr } = await supa.from('dealerships')
+          .update({ google_sync_token: null, google_channel_id: null, google_resource_id: null })
           .eq('id', dealerId)
+        if (resetErr) console.error('[gcal-webhook] failed to reset sync state:', resetErr.message)
         return ok200()
       }
 
       if (!eventsRes.ok) {
-        const errBody = await eventsRes.text()
-        console.error('[gcal-webhook] events fetch failed:', eventsRes.status, errBody)
+        console.error('[gcal-webhook] Google events API error:', eventsRes.status, await eventsRes.text())
         return ok200()
       }
 
       const eventsJson = await eventsRes.json() as {
         nextSyncToken?: string
-        items?: Array<{
-          id:           string
-          status:       string
-          summary?:     string
-          start?:       { dateTime?: string; date?: string }
-          end?:         { dateTime?: string; date?: string }
-          description?: string
-          updated?:     string
-        }>
+        items?:         GCalEvent[]
       }
 
-      // Rotate the syncToken immediately so the next ping is incremental
+      // Rotate syncToken before processing so even a crash mid-loop doesn't replay
       if (eventsJson.nextSyncToken) {
-        await supa.from('dealerships')
+        const { error: tokenErr } = await supa.from('dealerships')
           .update({ google_sync_token: eventsJson.nextSyncToken })
           .eq('id', dealerId)
-        console.log('[gcal-webhook] syncToken rotated for dealer', dealerId)
+        if (tokenErr) {
+          console.error('[gcal-webhook] syncToken rotation failed:', tokenErr.message)
+        } else {
+          console.log('[gcal-webhook] syncToken rotated for dealer', dealerId)
+        }
       }
 
       const items = eventsJson.items ?? []
-      console.log(`[gcal-webhook] dealer=${dealerId} processing ${items.length} changed event(s)`)
+      console.log(`[gcal-webhook] dealer=${dealerId} changed events=${items.length}`)
 
-      // ── Process each changed event ──────────────────────────────────────
+      // ── Process each changed event ────────────────────────────────────
       for (const evt of items) {
-        console.log('[gcal-webhook] event:', evt.id, 'status:', evt.status, 'summary:', evt.summary)
+        console.log('[gcal-webhook] processing event:', evt.id, '| status:', evt.status, '| summary:', evt.summary)
 
+        // ── DELETED ────────────────────────────────────────────────────
         if (evt.status === 'cancelled') {
-          // Deleted in Google Calendar — detach from our appointment row.
-          // We do NOT delete the appointment: the dealership staff can decide.
-          const { data: affected } = await supa.from('appointments')
+          const { data: detached, error: detachErr } = await supa
+            .from('appointments')
             .update({ google_event_id: null })
             .eq('google_event_id', evt.id)
             .eq('dealer_id', dealerId)
             .select('id')
 
-          if (affected?.length) {
-            console.log('[gcal-webhook] detached deleted event from appointment', affected[0].id)
+          if (detachErr) {
+            console.error('[gcal-webhook] database error detaching cancelled event:', evt.id, '—', detachErr.message, detachErr.details ?? '')
+          } else {
+            console.log('[gcal-webhook] detached cancelled event', evt.id, '— affected rows:', detached?.length ?? 0)
+          }
+          continue
+        }
+
+        // ── CREATED OR UPDATED ──────────────────────────────────────────
+        const parsed = parseGCalEvent(evt)
+        if (!parsed.scheduled_at) {
+          console.warn('[gcal-webhook] event', evt.id, 'has no start time — skipping')
+          continue
+        }
+
+        // Check whether we already have an appointment row for this Google event
+        const { data: existing, error: lookupErr } = await supa
+          .from('appointments')
+          .select('id')
+          .eq('google_event_id', evt.id)
+          .eq('dealer_id', dealerId)
+          .maybeSingle()
+
+        if (lookupErr) {
+          console.error('[gcal-webhook] database error looking up event', evt.id, '—', lookupErr.message, lookupErr.details ?? '')
+          continue
+        }
+
+        if (existing) {
+          // ── UPDATE — reschedule (and refresh notes) from Google ───────
+          const { error: updateErr } = await supa
+            .from('appointments')
+            .update({
+              scheduled_at: parsed.scheduled_at,
+              notes:        parsed.notes,
+            })
+            .eq('google_event_id', evt.id)
+            .eq('dealer_id', dealerId)
+
+          if (updateErr) {
+            console.error('[gcal-webhook] database update error for event', evt.id, '—', updateErr.message, updateErr.details ?? '', updateErr.hint ?? '')
+          } else {
+            console.log('[gcal-webhook] updated appointment', existing.id, '→ scheduled_at:', parsed.scheduled_at)
           }
 
         } else {
-          // Updated in Google Calendar — sync the new time back to our appointment.
-          const scheduledAt = evt.start?.dateTime ?? evt.start?.date
-          if (!scheduledAt) continue
+          // ── INSERT — event created directly in Google Calendar ────────
+          // Map event.summary ("Name (Type)") + event.id → new appointment row.
+          const newRow = {
+            dealer_id:        dealerId,
+            customer_id:      null,
+            source:           'google_calendar',
+            customer_name:    parsed.customer_name,
+            appointment_type: parsed.appointment_type,
+            scheduled_at:     parsed.scheduled_at,
+            vehicle:          parsed.vehicle,
+            notes:            parsed.notes,
+            google_event_id:  evt.id,
+          }
 
-          const { data: affected } = await supa.from('appointments')
-            .update({ scheduled_at: scheduledAt })
-            .eq('google_event_id', evt.id)
-            .eq('dealer_id', dealerId)
-            .select('id, scheduled_at')
+          console.log('[gcal-webhook] inserting new appointment from Google event:', evt.id, JSON.stringify(newRow))
 
-          if (affected?.length) {
-            console.log('[gcal-webhook] updated appointment', affected[0].id, '→', scheduledAt)
+          const { data: inserted, error: insertErr } = await supa
+            .from('appointments')
+            .insert(newRow)
+            .select('id')
+            .single()
+
+          if (insertErr) {
+            console.error('[gcal-webhook] database insert error for event', evt.id, '—', insertErr.message, insertErr.details ?? '', insertErr.hint ?? '')
           } else {
-            // No matching appointment — event was created directly in Google Calendar.
-            // We log it but don't create a new appointment row (insufficient data).
-            console.log('[gcal-webhook] no matching appointment for google_event_id', evt.id)
+            console.log('[gcal-webhook] inserted new appointment', inserted?.id, 'from Google event', evt.id)
           }
         }
       }
@@ -232,16 +307,14 @@ serve(async (req) => {
       return ok200()
 
     } catch (err) {
-      // Always return 200 to Google — a non-200 triggers aggressive retries
-      console.error('[gcal-webhook] ping processing error:', (err as Error).message)
+      // Always 200 to Google — non-200 triggers aggressive retries
+      console.error('[gcal-webhook] unhandled ping error:', (err as Error).message, (err as Error).stack)
       return ok200()
     }
   }
 
   // ─────────────────────────────────────────────────────────────────────
-  // PATH B: Setup action — register a new push-notification channel
-  // Called from google-calendar-auth callback AND from frontend on
-  // Settings load when channel is missing or near-expiry.
+  // PATH B: Setup action — register push-notification channel
   // ─────────────────────────────────────────────────────────────────────
   try {
     const body = await req.json() as { action?: string; dealer_id?: string }
@@ -258,33 +331,29 @@ serve(async (req) => {
       .eq('id', dealerId)
       .single()
 
-    if (dealerErr || !dealer) {
-      return jsonErr('Dealer not found: ' + (dealerErr?.message ?? 'unknown'), 404)
+    if (dealerErr) {
+      console.error('[gcal-webhook] setup dealer lookup failed:', dealerErr.message)
+      return jsonErr('Dealer not found: ' + dealerErr.message, 404)
     }
 
-    if (!dealer.google_refresh_token) {
+    if (!dealer?.google_refresh_token) {
       return jsonErr('Google Calendar not connected for this dealership')
     }
 
-    // Skip if an active channel already exists with > 1 hour remaining
+    // Skip if an active channel exists with > 1 hour remaining
     const nowMs    = Date.now()
     const expiryMs = Number(dealer.google_channel_expiry ?? 0)
     if (dealer.google_channel_id && expiryMs > nowMs + 60 * 60 * 1000) {
       console.log('[gcal-webhook] active channel exists for dealer', dealerId, '— skipping setup')
-      return json200({
-        skipped:    true,
-        reason:     'Active channel already registered',
-        channel_id: dealer.google_channel_id,
-        expiry:     expiryMs,
-      })
+      return json200({ skipped: true, reason: 'Active channel already registered', expiry: expiryMs })
     }
 
     const accessToken = await getAccessToken(dealer.google_refresh_token as string)
     const calendarId  = (dealer.google_calendar_email as string) || 'primary'
 
-    console.log('[gcal-webhook] starting setup for dealer', dealerId, 'calendar', calendarId)
+    console.log('[gcal-webhook] setup starting for dealer', dealerId, 'calendar', calendarId)
 
-    // ── 1. Full event list → obtain initial syncToken ─────────────────────
+    // ── Full event list → initial syncToken ───────────────────────────────
     let syncToken: string | null = null
     let pageToken: string | undefined
 
@@ -296,77 +365,64 @@ serve(async (req) => {
       listUrl.searchParams.set('singleEvents', 'true')
       if (pageToken) listUrl.searchParams.set('pageToken', pageToken)
 
-      const listRes  = await fetch(listUrl.toString(), {
+      const listRes = await fetch(listUrl.toString(), {
         headers: { Authorization: `Bearer ${accessToken}` },
       })
-
       if (!listRes.ok) {
         const errBody = await listRes.text()
         throw new Error(`Event list failed (${listRes.status}): ${errBody}`)
       }
-
-      const listJson = await listRes.json() as {
-        nextPageToken?: string
-        nextSyncToken?: string
-      }
+      const listJson = await listRes.json() as { nextPageToken?: string; nextSyncToken?: string }
       pageToken = listJson.nextPageToken
       if (!pageToken) syncToken = listJson.nextSyncToken ?? null
     } while (pageToken)
 
     console.log('[gcal-webhook] obtained syncToken for dealer', dealerId)
 
-    // ── 2. Register push-notification channel ─────────────────────────────
+    // ── Register push-notification channel ────────────────────────────────
     const channelId  = crypto.randomUUID()
     const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-calendar-webhook`
 
     console.log('[gcal-webhook] registering channel', channelId, '→', webhookUrl)
 
-    const watchRes  = await fetch(
+    const watchRes = await fetch(
       `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
       {
         method:  'POST',
-        headers: {
-          Authorization:  `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id:      channelId,
           type:    'web_hook',
           address: webhookUrl,
-          token:   dealerId,  // returned as X-Goog-Channel-Token on every ping
+          token:   dealerId,   // echoed back as X-Goog-Channel-Token on every ping
         }),
       },
     )
-
     const watchJson = await watchRes.json() as {
       id?:         string
       resourceId?: string
       expiration?: string
-      error?:      { code: number; message: string; status?: string }
+      error?:      { code: number; message: string }
     }
 
     if (watchJson.error || !watchJson.resourceId) {
       console.error('[gcal-webhook] watch registration failed:', JSON.stringify(watchJson))
-      return jsonErr(
-        watchJson.error?.message ?? 'Google watch registration failed — check domain verification',
-        500,
-      )
+      return jsonErr(watchJson.error?.message ?? 'Google watch registration failed — verify domain in Search Console', 500)
     }
 
-    // ── 3. Persist channel state + syncToken ──────────────────────────────
-    await supa.from('dealerships').update({
+    // ── Persist channel state + syncToken ─────────────────────────────────
+    const { error: saveErr } = await supa.from('dealerships').update({
       google_sync_token:     syncToken,
       google_channel_id:     watchJson.id,
       google_resource_id:    watchJson.resourceId,
       google_channel_expiry: Number(watchJson.expiration ?? 0),
     }).eq('id', dealerId)
 
-    console.log(
-      '[gcal-webhook] channel registered — dealer:', dealerId,
-      'channel:', watchJson.id,
-      'resourceId:', watchJson.resourceId,
-      'expires:', watchJson.expiration,
-    )
+    if (saveErr) {
+      console.error('[gcal-webhook] failed to save channel state:', saveErr.message, saveErr.details ?? '')
+    } else {
+      console.log('[gcal-webhook] channel registered — dealer:', dealerId, 'channel:', watchJson.id, 'expires:', watchJson.expiration)
+    }
 
     return json200({
       success:     true,
