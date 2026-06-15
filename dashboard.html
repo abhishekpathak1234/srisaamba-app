@@ -1785,79 +1785,111 @@ function syncCalendar(action, appointmentId, dealerId) {
 }
 
 // ── Settings: load current connection status ─────────────────────────────
+// Safe to call at any time — guards against missing dealership ID and
+// only selects columns guaranteed to exist in the dealerships table.
 async function loadGoogleCalendarStatus() {
   const loadEl  = document.getElementById('gcal-loading');
   const connEl  = document.getElementById('gcal-connected');
   const discEl  = document.getElementById('gcal-disconnected');
   const badgeEl = document.getElementById('gcal-status-badge');
-  if (!loadEl) return; // settings page not in DOM yet
+  if (!loadEl) return; // settings section not in DOM yet
 
   const dealerId = window.currentDealership?.id;
+
+  // Guard: dealership not loaded yet — wait and retry rather than querying
+  // with an undefined ID (which causes a PostgREST 400 Bad Request).
   if (!dealerId) {
-    // Dealership not loaded yet — show disconnected state so UI isn't stuck on Loading
-    loadEl.style.display = 'none';
-    if (connEl)  connEl.style.display  = 'none';
-    if (discEl)  discEl.style.display  = '';
-    if (badgeEl) badgeEl.innerHTML =
-      '<span style="font-size:11px;font-weight:700;background:var(--surface2);color:var(--ink3);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Not Connected</span>';
+    let _attempts = 0;
+    const _retry = setInterval(() => {
+      _attempts++;
+      const id = window.currentDealership?.id;
+      if (id) { clearInterval(_retry); loadGoogleCalendarStatus(); return; }
+      if (_attempts >= 20) {
+        // 10 s elapsed — show Not Connected so the UI is never stuck on Loading
+        clearInterval(_retry);
+        loadEl.style.display = 'none';
+        if (connEl)  connEl.style.display = 'none';
+        if (discEl)  discEl.style.display = '';
+        _gcalSetBadge(badgeEl, false);
+      }
+    }, 500);
     return;
   }
 
+  // Show spinner while querying
   loadEl.style.display = '';
-  if (connEl)  connEl.style.display  = 'none';
-  if (discEl)  discEl.style.display  = 'none';
+  if (connEl) connEl.style.display = 'none';
+  if (discEl) discEl.style.display = 'none';
 
-  const { data } = await supa
+  // Only select columns that are guaranteed to exist — avoids 400 if
+  // optional migration columns haven't been applied to the live DB yet.
+  const { data, error } = await supa
     .from('dealerships')
-    .select('google_calendar_connected, google_calendar_email, google_channel_id, google_channel_expiry')
+    .select('google_calendar_connected, google_calendar_email')
     .eq('id', dealerId)
     .single();
 
   loadEl.style.display = 'none';
 
+  if (error) {
+    console.error('[loadGoogleCalendarStatus] query failed:', error.message);
+    if (discEl) discEl.style.display = '';
+    _gcalSetBadge(badgeEl, false);
+    return;
+  }
+
   if (data?.google_calendar_connected) {
-    if (connEl)  connEl.style.display  = '';
-    if (discEl)  discEl.style.display  = 'none';
+    if (connEl) connEl.style.display = '';
+    if (discEl) discEl.style.display = 'none';
     const emailEl = document.getElementById('gcal-email');
     if (emailEl) emailEl.textContent = data.google_calendar_email || '';
-    if (badgeEl) badgeEl.innerHTML =
-      '<span style="font-size:11px;font-weight:700;background:rgba(26,122,80,.12);color:var(--green);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Connected</span>';
+    _gcalSetBadge(badgeEl, true);
 
-    // Auto-register or renew the push-notification channel (fire-and-forget).
-    // Runs whenever the channel is missing or expires within the next hour.
-    const expiryMs = Number(data.google_channel_expiry ?? 0);
-    if (!data.google_channel_id || expiryMs < Date.now() + 60 * 60 * 1000) {
-      supa.functions.invoke('google-calendar-webhook', {
-        body: { action: 'setup', dealer_id: dealerId },
-      }).catch(() => {});
-    }
+    // Fire-and-forget: ensure the push-notification channel is registered.
+    // The server skips this silently if an active channel already exists.
+    supa.functions.invoke('google-calendar-webhook', {
+      body: { action: 'setup', dealer_id: dealerId },
+    }).catch(() => {});
   } else {
-    if (connEl)  connEl.style.display  = 'none';
-    if (discEl)  discEl.style.display  = '';
-    if (badgeEl) badgeEl.innerHTML =
-      '<span style="font-size:11px;font-weight:700;background:var(--surface2);color:var(--ink3);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Not Connected</span>';
+    if (connEl) connEl.style.display = 'none';
+    if (discEl) discEl.style.display = '';
+    _gcalSetBadge(badgeEl, false);
   }
+}
+
+function _gcalSetBadge(el, connected) {
+  if (!el) return;
+  el.innerHTML = connected
+    ? '<span style="font-size:11px;font-weight:700;background:rgba(26,122,80,.12);color:var(--green);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Connected</span>'
+    : '<span style="font-size:11px;font-weight:700;background:var(--surface2);color:var(--ink3);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Not Connected</span>';
 }
 
 // ── Settings: start OAuth flow ────────────────────────────────────────────
 async function connectGoogleCalendar() {
   const dealerId = window.currentDealership?.id;
-  if (!dealerId) { showToast('Dealership not loaded — try refreshing.', 'error'); return; }
-  // invoke() sends JWT in Authorization header automatically.
-  // The function returns { url } — we then redirect the browser to Google's consent screen.
+  if (!dealerId) {
+    showToast('Dealership not loaded yet — please wait a moment and try again.', 'error');
+    return;
+  }
+
+  // supa.functions.invoke() automatically attaches the session JWT so the
+  // Edge Function can verify the caller. The function returns { url } —
+  // we then redirect the browser to Google's consent screen.
   const { data, error } = await supa.functions.invoke('google-calendar-auth', {
     body: { action: 'connect', dealer_id: dealerId },
   });
+
   if (error) {
     console.error('[connectGoogleCalendar] invoke failed:', error.message, error.context ?? error);
     showToast('Could not start Google Calendar connect: ' + error.message, 'error');
     return;
   }
+
   if (data?.url) {
     window.location.href = data.url;
   } else {
-    console.warn('[connectGoogleCalendar] No URL in response:', data);
-    showToast('Unexpected response from server. Please try again.', 'error');
+    console.warn('[connectGoogleCalendar] unexpected response:', data);
+    showToast('Unexpected response from server — please try again.', 'error');
   }
 }
 
