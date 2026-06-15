@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy · Sri Saamba Auto AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0908; --surface: #131211; --surface2: #1a1917;
+    --ink: #ffffff; --ink2: #aaa9a6; --ink3: #666462;
+    --border2: #2d2b28; --orange: #FF5C1A;
+    --font: 'Cabinet Grotesk', sans-serif;
+    --mono: 'Instrument Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--ink); line-height: 1.7; }
+
+  .grid-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    background-size: 44px 44px;
+  }
+
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(10,9,8,.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border2);
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 40px; height: 60px;
+  }
+  .nav-mark {
+    width: 32px; height: 32px; background: var(--orange); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 800; color: #fff; flex-shrink: 0;
+  }
+  .nav-name { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; }
+  .nav-name span { color: var(--orange); }
+  nav a.back {
+    margin-left: auto; font-size: 13px; color: var(--ink3);
+    text-decoration: none; font-family: var(--mono);
+    transition: color .15s;
+  }
+  nav a.back:hover { color: var(--orange); }
+
+  .wrapper { max-width: 740px; margin: 0 auto; padding: 64px 24px 100px; position: relative; z-index: 1; }
+
+  .badge {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    letter-spacing: 1.5px; color: var(--orange); font-family: var(--mono);
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  h1 { font-size: 38px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .meta { font-size: 13px; color: var(--ink3); font-family: var(--mono); margin-bottom: 48px; }
+
+  h2 {
+    font-size: 18px; font-weight: 700; margin: 40px 0 12px;
+    padding-top: 40px; border-top: 1px solid var(--border2);
+    color: var(--ink);
+  }
+  h2:first-of-type { margin-top: 0; border-top: none; padding-top: 0; }
+  p { font-size: 15px; color: var(--ink2); margin-bottom: 14px; }
+  ul { padding-left: 20px; margin-bottom: 14px; }
+  ul li { font-size: 15px; color: var(--ink2); margin-bottom: 6px; }
+  a { color: var(--orange); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .callout {
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 12px; padding: 20px 24px; margin: 24px 0;
+  }
+  .callout p { margin: 0; }
+
+  footer {
+    text-align: center; padding: 32px; font-size: 12px;
+    color: var(--ink3); font-family: var(--mono); border-top: 1px solid var(--border2);
+    position: relative; z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-overlay"></div>
+
+<nav>
+  <div class="nav-mark">AA</div>
+  <div class="nav-name">Auto <span>AI</span></div>
+  <a class="back" href="https://app.srisaamba.com">← Back to app</a>
+</nav>
+
+<div class="wrapper">
+  <div class="badge">— Legal</div>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Last updated: 15 June 2026 &nbsp;·&nbsp; Sri Saamba Technologies</p>
+
+  <h2>1. Who We Are</h2>
+  <p>Sri Saamba Technologies operates Auto AI (<strong>app.srisaamba.com</strong>), an AI-powered receptionist and appointment management platform for automotive dealerships. References to "we", "us", or "our" mean Sri Saamba Technologies. References to "you" mean the dealership or individual using the platform.</p>
+
+  <h2>2. What Data We Collect</h2>
+  <p>We collect only the data necessary to provide the service:</p>
+  <ul>
+    <li><strong>Account data</strong> — name, email address, and password (hashed) provided at sign-up.</li>
+    <li><strong>Dealership data</strong> — dealership name and configuration settings you enter.</li>
+    <li><strong>Appointment data</strong> — customer names, phone numbers, vehicle details, appointment types, and scheduled times entered through the platform.</li>
+    <li><strong>Google Calendar data</strong> — if you connect Google Calendar, we store a server-side OAuth refresh token to sync appointments on your behalf. We access only the <code>calendar.events</code> scope (create, edit, delete events you authorise). We never read events you did not create through Auto AI.</li>
+    <li><strong>Usage data</strong> — browser type, IP address, and page interactions for security and performance monitoring.</li>
+  </ul>
+
+  <h2>3. How We Use Google Calendar Data</h2>
+  <div class="callout">
+    <p>Auto AI's use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+  </div>
+  <p>When you connect Google Calendar, we use your OAuth token exclusively to:</p>
+  <ul>
+    <li>Create a Google Calendar event when an appointment is booked.</li>
+    <li>Update that event when the appointment is edited.</li>
+    <li>Delete that event when the appointment is cancelled.</li>
+  </ul>
+  <p>We do not read, copy, share, or analyse any other calendar data. The refresh token is stored encrypted in our database and is never exposed to your browser or any third party.</p>
+
+  <h2>4. How We Store and Protect Data</h2>
+  <p>All data is stored in Supabase (hosted on AWS), with row-level security policies ensuring each dealership can only access its own data. Passwords are hashed using bcrypt. Google refresh tokens are stored server-side only and never returned in frontend API responses. All data in transit is encrypted via TLS 1.2+.</p>
+
+  <h2>5. Data Sharing</h2>
+  <p>We do not sell, rent, or share your personal data with third parties for marketing. We share data only in these limited circumstances:</p>
+  <ul>
+    <li><strong>Google</strong> — to sync calendar events on your behalf when you have connected Google Calendar.</li>
+    <li><strong>Supabase</strong> — our database and authentication infrastructure provider.</li>
+    <li><strong>Legal requirement</strong> — if required by law, court order, or to protect against fraud or harm.</li>
+  </ul>
+
+  <h2>6. Data Retention</h2>
+  <p>We retain your data for as long as your account is active. If you disconnect Google Calendar, we immediately delete your stored refresh token and stop syncing. If you close your account, we delete all associated data within 30 days.</p>
+
+  <h2>7. Your Rights</h2>
+  <p>You have the right to access, correct, export, or delete your data at any time. To exercise these rights, email us at <a href="mailto:support@srisaamba.com">support@srisaamba.com</a>. We will respond within 30 days.</p>
+
+  <h2>8. Cookies</h2>
+  <p>We use only essential session cookies set by Supabase for authentication. We do not use tracking or advertising cookies.</p>
+
+  <h2>9. Children's Privacy</h2>
+  <p>Auto AI is a B2B platform intended for use by businesses. We do not knowingly collect data from anyone under the age of 16.</p>
+
+  <h2>10. Changes to This Policy</h2>
+  <p>We may update this policy periodically. We will notify you of material changes by email or via an in-app notice. Continued use of the platform after changes constitutes acceptance.</p>
+
+  <h2>11. Contact</h2>
+  <p>For privacy questions or data requests:<br>
+  Email: <a href="mailto:support@srisaamba.com">support@srisaamba.com</a><br>
+  Website: <a href="https://srisaamba.com">srisaamba.com</a></p>
+</div>
+
+<footer>© 2026 Sri Saamba Technologies · <a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Service</a></footer>
+
+</body>
+</html>
