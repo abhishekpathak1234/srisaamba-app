@@ -1,0 +1,25 @@
+# Environment secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+.env.production
+supabase/.env
+supabase/.env.local
+
+# Supabase local dev temp files
+supabase/.temp/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

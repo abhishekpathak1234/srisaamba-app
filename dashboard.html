@@ -440,7 +440,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 
       const { data: dealership, error: dealerError } = await supa
         .from('dealerships')
-        .select('*')
+        .select('id, name, tagline, contact_email, street_address, city, state, zip_code, country, timezone, google_calendar_connected, google_calendar_email')
         .eq('id', membership.dealership_id)
         .single();
 
@@ -1812,12 +1812,16 @@ async function _gcalAutoSync(dealerId) {
       'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
     };
     const base = 'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook';
-    await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'setup',    dealer_id: dealerId }) });
-    const r      = await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'backfill', dealer_id: dealerId }) });
-    const result = await r.json().catch(() => ({}));
-    console.log('[_gcalAutoSync] backfill result:', result);
-    if (result.inserted || result.updated) {
-      if (typeof loadCalendarData === 'function') loadCalendarData(dealerId);
+    // Setup runs every time — it self-skips when channel is still active (server-side guard)
+    await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'setup', dealer_id: dealerId }) });
+    // Backfill runs at most once per session to avoid hammering Google API quota
+    if (!sessionStorage.getItem('_gcal_backfill_done')) {
+      sessionStorage.setItem('_gcal_backfill_done', '1');
+      const r      = await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'backfill', dealer_id: dealerId }) });
+      const result = await r.json().catch(() => ({}));
+      if (result.inserted || result.updated) {
+        if (typeof loadCalendarData === 'function') loadCalendarData(dealerId);
+      }
     }
   } catch (err) {
     console.error('[_gcalAutoSync] error:', err);

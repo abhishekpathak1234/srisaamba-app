@@ -178,10 +178,31 @@ serve(async (req) => {
     try {
       const body = await req.json() as { action?: string; dealer_id?: string }
 
-      if (body.action === 'connect') {
+      if (body.action === 'connect' || body.action === 'disconnect') {
         if (!body.dealer_id) {
           return new Response('Missing dealer_id', { status: 400, headers: CORS })
         }
+
+        // Verify the caller actually belongs to this dealership
+        const authHeader = req.headers.get('Authorization') ?? ''
+        const userSupa = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+          { global: { headers: { Authorization: authHeader } } },
+        )
+        const { data: membership } = await userSupa
+          .from('dealership_members')
+          .select('dealership_id')
+          .eq('dealership_id', body.dealer_id)
+          .maybeSingle()
+
+        if (!membership) {
+          console.warn('[gcal-auth] ownership check failed for dealer:', body.dealer_id)
+          return new Response('Forbidden', { status: 403, headers: CORS })
+        }
+      }
+
+      if (body.action === 'connect') {
         const state = btoa(JSON.stringify({ dealer_id: body.dealer_id, ts: Date.now() }))
         return new Response(
           JSON.stringify({ url: buildGoogleUrl(clientId, redirectUri, state) }),
@@ -190,9 +211,6 @@ serve(async (req) => {
       }
 
       if (body.action === 'disconnect') {
-        if (!body.dealer_id) {
-          return new Response('Missing dealer_id', { status: 400, headers: CORS })
-        }
         await supa.from('dealerships').update({
           google_calendar_connected: false,
           google_calendar_email:     null,
@@ -251,7 +269,7 @@ serve(async (req) => {
     }
 
     if (!tokens.refresh_token) {
-      console.error('[gcal-auth] no refresh_token in response:', tokens)
+      console.error('[gcal-auth] no refresh_token in response — error:', tokens.error ?? 'unknown')
       return Response.redirect(`${appUrl}/dashboard.html#settings`, 302)
     }
 
