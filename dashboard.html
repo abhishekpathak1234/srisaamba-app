@@ -1004,7 +1004,11 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
                   <span style="font-size:12px;color:var(--green);font-weight:700;display:flex;align-items:center;gap:5px;">● Connected</span>
                   <span style="font-size:13px;color:var(--ink2);" id="gcal-email"></span>
                 </div>
-                <button class="tb-btn ghost" onclick="disconnectGoogleCalendar()">Disconnect</button>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                  <button class="btn-primary" id="gcal-sync-btn" onclick="syncGoogleCalendarHistory()">Sync This Week</button>
+                  <button class="tb-btn ghost" onclick="disconnectGoogleCalendar()">Disconnect</button>
+                </div>
+                <p id="gcal-sync-msg" style="font-size:12px;color:var(--ink3);margin-top:10px;display:none;"></p>
               </div>
             </div>
           </div>
@@ -1846,10 +1850,25 @@ async function loadGoogleCalendarStatus() {
     _gcalSetBadge(badgeEl, true);
 
     // Fire-and-forget: ensure the push-notification channel is registered.
-    // The server skips this silently if an active channel already exists.
-    supa.functions.invoke('google-calendar-webhook', {
-      body: { action: 'setup', dealer_id: dealerId },
-    }).catch(() => {});
+    // The server skips silently if an active channel already exists.
+    // Uses direct fetch (supa.functions.invoke silently fails before sending).
+    ;(async () => {
+      try {
+        const { data: sd } = await supa.auth.getSession();
+        await fetch(
+          'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + (sd?.session?.access_token || ''),
+              'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
+            },
+            body: JSON.stringify({ action: 'setup', dealer_id: dealerId }),
+          }
+        );
+      } catch { /* fire-and-forget — failures are visible in Supabase logs */ }
+    })();
   } else {
     if (connEl) connEl.style.display = 'none';
     if (discEl) discEl.style.display = '';
@@ -1951,6 +1970,56 @@ async function disconnectGoogleCalendar() {
   } catch (err) {
     console.error('[disconnectGoogleCalendar] fetch error:', err);
     showToast('Disconnect error: ' + (err.message || String(err)), 'error');
+  }
+}
+
+// ── Settings: one-time historical backfill ────────────────────────────────
+async function syncGoogleCalendarHistory() {
+  const dealerId = window.currentDealership?.id;
+  if (!dealerId) { showToast('Dealership not loaded', 'error'); return; }
+
+  const btn = document.getElementById('gcal-sync-btn');
+  const msg = document.getElementById('gcal-sync-msg');
+  if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
+  if (msg) { msg.style.display = ''; msg.textContent = 'Fetching events from Google Calendar…'; }
+
+  try {
+    const { data: sd } = await supa.auth.getSession();
+    const token = sd?.session?.access_token;
+
+    const res = await fetch(
+      'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (token || ''),
+          'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
+        },
+        body: JSON.stringify({ action: 'backfill', dealer_id: dealerId }),
+      }
+    );
+
+    const result = await res.json();
+    console.log('[syncGoogleCalendarHistory]', result);
+
+    if (result?.success) {
+      const summary = `Synced! ${result.inserted} added, ${result.updated} updated, ${result.skipped} skipped.`;
+      if (msg) msg.textContent = summary;
+      showToast(summary);
+      if (typeof loadCalendarData === 'function') loadCalendarData(dealerId);
+    } else {
+      const errMsg = result?.reason || result?.error || 'Unknown error';
+      if (msg) msg.textContent = 'Sync failed: ' + errMsg;
+      showToast('Sync failed: ' + errMsg, 'error');
+    }
+  } catch (err) {
+    console.error('[syncGoogleCalendarHistory] error:', err);
+    const errMsg = (err.message || String(err));
+    if (msg) msg.textContent = 'Sync error: ' + errMsg;
+    showToast('Sync error: ' + errMsg, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sync This Week'; }
   }
 }
 

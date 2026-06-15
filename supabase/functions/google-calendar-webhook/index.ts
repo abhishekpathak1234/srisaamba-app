@@ -317,13 +317,132 @@ serve(async (req) => {
   // PATH B: Setup action — register push-notification channel
   // ─────────────────────────────────────────────────────────────────────
   try {
-    const body = await req.json() as { action?: string; dealer_id?: string }
-
-    if (body.action !== 'setup' || !body.dealer_id) {
-      return jsonErr('action must be "setup" and dealer_id is required')
+    const body = await req.json() as {
+      action?:   string
+      dealer_id?: string
+      time_min?: string
+      time_max?: string
     }
 
+    if (!body.dealer_id) return jsonErr('dealer_id is required')
     const dealerId = body.dealer_id
+
+    // ── BACKFILL action — one-time historical import ──────────────────────
+    if (body.action === 'backfill') {
+      const { data: dealer, error: dealerErr } = await supa
+        .from('dealerships')
+        .select('google_refresh_token, google_calendar_email')
+        .eq('id', dealerId)
+        .single()
+
+      if (dealerErr || !dealer?.google_refresh_token) {
+        return jsonErr('Google Calendar not connected for this dealership', 400)
+      }
+
+      const accessToken = await getAccessToken(dealer.google_refresh_token as string)
+      const calendarId  = (dealer.google_calendar_email as string) || 'primary'
+
+      // Default window: Monday of this week → Sunday of next week (14 days)
+      const now      = new Date()
+      const dow      = now.getDay()                     // 0=Sun, 1=Mon…
+      const monday   = new Date(now)
+      monday.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1))
+      monday.setHours(0, 0, 0, 0)
+      const endDate  = new Date(monday)
+      endDate.setDate(monday.getDate() + 13)            // +13 → end of next week
+      endDate.setHours(23, 59, 59, 999)
+
+      const timeMin = body.time_min ?? monday.toISOString()
+      const timeMax = body.time_max ?? endDate.toISOString()
+
+      console.log(`[gcal-webhook] backfill starting — dealer:${dealerId} calendar:${calendarId} ${timeMin} → ${timeMax}`)
+
+      let inserted = 0, updated = 0, skipped = 0
+      let pageToken: string | undefined
+
+      do {
+        const listUrl = new URL(
+          `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events`,
+        )
+        listUrl.searchParams.set('timeMin',      timeMin)
+        listUrl.searchParams.set('timeMax',      timeMax)
+        listUrl.searchParams.set('singleEvents', 'true')
+        listUrl.searchParams.set('orderBy',      'startTime')
+        listUrl.searchParams.set('maxResults',   '250')
+        if (pageToken) listUrl.searchParams.set('pageToken', pageToken)
+
+        const listRes  = await fetch(listUrl.toString(), {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        })
+
+        if (!listRes.ok) {
+          const errBody = await listRes.text()
+          console.error('[gcal-webhook] backfill list error:', listRes.status, errBody)
+          return jsonErr(`Google Calendar fetch failed (${listRes.status}): ${errBody}`, 500)
+        }
+
+        const listJson = await listRes.json() as { nextPageToken?: string; items?: GCalEvent[] }
+        pageToken = listJson.nextPageToken
+
+        for (const evt of listJson.items ?? []) {
+          if (evt.status === 'cancelled') { skipped++; continue }
+
+          const parsed = parseGCalEvent(evt)
+          if (!parsed.scheduled_at) { skipped++; continue }
+
+          const { data: existing, error: lookupErr } = await supa
+            .from('appointments')
+            .select('id')
+            .eq('google_event_id', evt.id)
+            .eq('dealer_id', dealerId)
+            .maybeSingle()
+
+          if (lookupErr) {
+            console.error('[gcal-webhook] backfill lookup error:', evt.id, lookupErr.message)
+            skipped++; continue
+          }
+
+          if (existing) {
+            const { error: upErr } = await supa
+              .from('appointments')
+              .update({ scheduled_at: parsed.scheduled_at, notes: parsed.notes, vehicle: parsed.vehicle })
+              .eq('google_event_id', evt.id)
+              .eq('dealer_id', dealerId)
+            if (upErr) {
+              console.error('[gcal-webhook] backfill update error:', evt.id, upErr.message)
+              skipped++
+            } else { updated++ }
+          } else {
+            const { error: insErr } = await supa
+              .from('appointments')
+              .insert({
+                dealer_id:        dealerId,
+                customer_id:      null,
+                source:           'google_calendar',
+                customer_name:    parsed.customer_name,
+                appointment_type: parsed.appointment_type,
+                scheduled_at:     parsed.scheduled_at,
+                vehicle:          parsed.vehicle,
+                notes:            parsed.notes,
+                google_event_id:  evt.id,
+                status:           'confirmed',
+              })
+            if (insErr) {
+              console.error('[gcal-webhook] backfill insert error:', evt.id, insErr.message, insErr.details ?? '')
+              skipped++
+            } else { inserted++ }
+          }
+        }
+      } while (pageToken)
+
+      console.log(`[gcal-webhook] backfill done — dealer:${dealerId} inserted:${inserted} updated:${updated} skipped:${skipped}`)
+      return json200({ success: true, inserted, updated, skipped, timeMin, timeMax })
+    }
+
+    // ── SETUP action — register push-notification channel ─────────────────
+    if (body.action !== 'setup') {
+      return jsonErr('action must be "setup" or "backfill"')
+    }
 
     const { data: dealer, error: dealerErr } = await supa
       .from('dealerships')
