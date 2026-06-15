@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/calendar-webhook",
+      "destination": "https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook"
+    }
+  ]
+}

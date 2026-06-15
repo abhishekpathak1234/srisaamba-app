@@ -381,7 +381,7 @@ serve(async (req) => {
 
     // ── Register push-notification channel ────────────────────────────────
     const channelId  = crypto.randomUUID()
-    const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-calendar-webhook`
+    const webhookUrl = 'https://app.srisaamba.com/api/calendar-webhook'
 
     console.log('[gcal-webhook] registering channel', channelId, '→', webhookUrl)
 

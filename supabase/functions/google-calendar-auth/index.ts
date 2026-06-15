@@ -111,7 +111,7 @@ async function registerWatchChannel(opts: {
 
   // ── 2. Register push-notification channel ─────────────────────────────
   const channelId  = crypto.randomUUID()
-  const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/google-calendar-webhook`
+  const webhookUrl = 'https://app.srisaamba.com/api/calendar-webhook'
 
   const watchRes  = await fetch(
     `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
