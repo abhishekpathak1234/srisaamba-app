@@ -1828,8 +1828,17 @@ async function connectGoogleCalendar() {
   const { data, error } = await supa.functions.invoke('google-calendar-auth', {
     body: { action: 'connect', dealer_id: dealerId },
   });
-  if (error) { showToast('Could not start Google Calendar connect: ' + error.message, 'error'); return; }
-  if (data?.url) window.location.href = data.url;
+  if (error) {
+    console.error('[connectGoogleCalendar] invoke failed:', error.message, error.context ?? error);
+    showToast('Could not start Google Calendar connect: ' + error.message, 'error');
+    return;
+  }
+  if (data?.url) {
+    window.location.href = data.url;
+  } else {
+    console.warn('[connectGoogleCalendar] No URL in response:', data);
+    showToast('Unexpected response from server. Please try again.', 'error');
+  }
 }
 
 // ── Settings: disconnect ──────────────────────────────────────────────────
