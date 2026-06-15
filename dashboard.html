@@ -389,15 +389,6 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
   (async () => {
     const urlParams = new URLSearchParams(window.location.search);
 
-    // ── Recovery token check — FIRST, before session/demo logic ─────────────
-    // Catches the case where Supabase redirected the recovery link to
-    // dashboard.html instead of reset-password.html (e.g. Site URL fallback).
-    const _rHash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-    if (_rHash.get('type') === 'recovery' || urlParams.has('code')) {
-      window.location.replace('reset-password.html' + window.location.search + window.location.hash);
-      return;
-    }
-
     const isDemoMode = urlParams.get('mode') === 'demo';
 
     // 1. Safe Presentation Demo Mode Interceptor
@@ -471,10 +462,6 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
 
   supa.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') window.location.replace('login.html');
-    if (event === 'PASSWORD_RECOVERY') {
-      // Recovery token landed on dashboard instead of reset-password.html — redirect correctly
-      window.location.replace('reset-password.html');
-    }
   });
 
   async function logout() {
