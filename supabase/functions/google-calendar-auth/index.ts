@@ -70,10 +70,29 @@ serve(async (req) => {
     return Response.redirect(googleUrl.toString(), 302)
   }
 
-  // ── POST { action: 'disconnect' }  →  clear tokens ───────────────────
+  // ── POST { action: 'connect', dealer_id }  →  return Google OAuth URL ──
+  // Allows supa.functions.invoke() to pass JWT, then frontend redirects to URL.
+  // ── POST { action: 'disconnect', dealer_id }  →  clear tokens ────────
   if (req.method === 'POST') {
     try {
       const body = await req.json() as { action?: string; dealer_id?: string }
+
+      if (body.action === 'connect') {
+        if (!body.dealer_id) return new Response('Missing dealer_id', { status: 400 })
+        const state     = btoa(JSON.stringify({ dealer_id: body.dealer_id, ts: Date.now() }))
+        const googleUrl = new URL(GOOGLE_AUTH_URL)
+        googleUrl.searchParams.set('client_id',     clientId)
+        googleUrl.searchParams.set('redirect_uri',  redirectUri)
+        googleUrl.searchParams.set('response_type', 'code')
+        googleUrl.searchParams.set('scope',         SCOPES)
+        googleUrl.searchParams.set('access_type',   'offline')
+        googleUrl.searchParams.set('prompt',        'consent')
+        googleUrl.searchParams.set('state',         state)
+        return new Response(JSON.stringify({ url: googleUrl.toString() }), {
+          headers: { ...CORS, 'Content-Type': 'application/json' },
+        })
+      }
+
       if (body.action !== 'disconnect' || !body.dealer_id) {
         return new Response('Bad request', { status: 400 })
       }

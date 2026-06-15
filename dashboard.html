@@ -1820,12 +1820,16 @@ async function loadGoogleCalendarStatus() {
 }
 
 // ── Settings: start OAuth flow ────────────────────────────────────────────
-function connectGoogleCalendar() {
+async function connectGoogleCalendar() {
   const dealerId = window.currentDealership?.id;
   if (!dealerId) { showToast('Dealership not loaded — try refreshing.', 'error'); return; }
-  // Redirect to the Edge Function which issues the Google consent redirect.
-  // The function returns after OAuth with the session stored server-side.
-  window.location.href = SUPABASE_URL + '/functions/v1/google-calendar-auth?action=connect&dealer_id=' + dealerId;
+  // invoke() sends JWT in Authorization header automatically.
+  // The function returns { url } — we then redirect the browser to Google's consent screen.
+  const { data, error } = await supa.functions.invoke('google-calendar-auth', {
+    body: { action: 'connect', dealer_id: dealerId },
+  });
+  if (error) { showToast('Could not start Google Calendar connect: ' + error.message, 'error'); return; }
+  if (data?.url) window.location.href = data.url;
 }
 
 // ── Settings: disconnect ──────────────────────────────────────────────────
