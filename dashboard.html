@@ -1809,7 +1809,7 @@ async function loadGoogleCalendarStatus() {
 
   const { data } = await supa
     .from('dealerships')
-    .select('google_calendar_connected, google_calendar_email')
+    .select('google_calendar_connected, google_calendar_email, google_channel_id, google_channel_expiry')
     .eq('id', dealerId)
     .single();
 
@@ -1822,6 +1822,15 @@ async function loadGoogleCalendarStatus() {
     if (emailEl) emailEl.textContent = data.google_calendar_email || '';
     if (badgeEl) badgeEl.innerHTML =
       '<span style="font-size:11px;font-weight:700;background:rgba(26,122,80,.12);color:var(--green);padding:3px 10px;border-radius:99px;font-family:var(--mono);">Connected</span>';
+
+    // Auto-register or renew the push-notification channel (fire-and-forget).
+    // Runs whenever the channel is missing or expires within the next hour.
+    const expiryMs = Number(data.google_channel_expiry ?? 0);
+    if (!data.google_channel_id || expiryMs < Date.now() + 60 * 60 * 1000) {
+      supa.functions.invoke('google-calendar-webhook', {
+        body: { action: 'setup', dealer_id: dealerId },
+      }).catch(() => {});
+    }
   } else {
     if (connEl)  connEl.style.display  = 'none';
     if (discEl)  discEl.style.display  = '';
@@ -1869,6 +1878,48 @@ async function disconnectGoogleCalendar() {
     loadGoogleCalendarStatus();
   }
 }
+
+// ── Realtime: live-update the calendar/dashboard when Google syncs back ───
+// Subscribes to INSERT/UPDATE/DELETE on the appointments table for the
+// current dealership.  Fires whenever the webhook Edge Function writes a
+// change from Google Calendar back into Supabase.
+(function startAppointmentRealtime() {
+  // Wait until the dealership is known, then subscribe once.
+  const _waitForDealer = setInterval(() => {
+    const dealerId = window.currentDealership?.id;
+    if (!dealerId) return;
+    clearInterval(_waitForDealer);
+
+    supa
+      .channel('appointments-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event:  '*',          // INSERT | UPDATE | DELETE
+          schema: 'public',
+          table:  'appointments',
+          filter: `dealer_id=eq.${dealerId}`,
+        },
+        (payload) => {
+          console.log('[realtime] appointment change:', payload.eventType, payload);
+          // Refresh whichever view is currently active
+          const activeHash = window.location.hash.slice(1);
+          if (activeHash === 'calendar' && typeof loadCalendarData === 'function') {
+            loadCalendarData(dealerId);
+          }
+          if (activeHash === 'today-activity' && typeof loadTodayActivityPage === 'function') {
+            loadTodayActivityPage();
+          }
+          if (typeof window.loadLiveData === 'function') {
+            window.loadLiveData(dealerId);
+          }
+        },
+      )
+      .subscribe((status) => {
+        console.log('[realtime] appointments channel status:', status);
+      });
+  }, 300);
+})();
 </script>
 </body>
 </html>
