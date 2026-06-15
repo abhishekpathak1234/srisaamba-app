@@ -240,17 +240,17 @@ serve(async (req) => {
 
         // ── DELETED ────────────────────────────────────────────────────
         if (evt.status === 'cancelled') {
-          const { data: detached, error: detachErr } = await supa
+          const { data: deleted, error: deleteErr } = await supa
             .from('appointments')
-            .update({ google_event_id: null })
+            .delete()
             .eq('google_event_id', evt.id)
             .eq('dealer_id', dealerId)
             .select('id')
 
-          if (detachErr) {
-            console.error('[gcal-webhook] database error detaching cancelled event:', evt.id, '—', detachErr.message, detachErr.details ?? '')
+          if (deleteErr) {
+            console.error('[gcal-webhook] database error deleting cancelled event:', evt.id, '—', deleteErr.message, deleteErr.details ?? '')
           } else {
-            console.log('[gcal-webhook] detached cancelled event', evt.id, '— affected rows:', detached?.length ?? 0)
+            console.log('[gcal-webhook] deleted appointment for cancelled event', evt.id, '— affected rows:', deleted?.length ?? 0)
           }
           continue
         }
