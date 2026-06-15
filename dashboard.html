@@ -1004,11 +1004,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
                   <span style="font-size:12px;color:var(--green);font-weight:700;display:flex;align-items:center;gap:5px;">● Connected</span>
                   <span style="font-size:13px;color:var(--ink2);" id="gcal-email"></span>
                 </div>
-                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-                  <button class="btn-primary" id="gcal-sync-btn" onclick="syncGoogleCalendarHistory()">Sync This Week</button>
-                  <button class="tb-btn ghost" onclick="disconnectGoogleCalendar()">Disconnect</button>
-                </div>
-                <p id="gcal-sync-msg" style="font-size:12px;color:var(--ink3);margin-top:10px;display:none;"></p>
+                <button class="tb-btn ghost" onclick="disconnectGoogleCalendar()">Disconnect</button>
               </div>
             </div>
           </div>
@@ -1849,25 +1845,24 @@ async function loadGoogleCalendarStatus() {
     if (emailEl) emailEl.textContent = data.google_calendar_email || '';
     _gcalSetBadge(badgeEl, true);
 
-    // Fire-and-forget: ensure the push-notification channel is registered.
-    // The server skips silently if an active channel already exists.
-    // Uses direct fetch (supa.functions.invoke silently fails before sending).
+    // Fire-and-forget: register push channel + backfill this week's events.
+    // Both are idempotent — safe to re-run on every settings load.
     ;(async () => {
       try {
         const { data: sd } = await supa.auth.getSession();
-        await fetch(
-          'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + (sd?.session?.access_token || ''),
-              'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
-            },
-            body: JSON.stringify({ action: 'setup', dealer_id: dealerId }),
-          }
-        );
-      } catch { /* fire-and-forget — failures are visible in Supabase logs */ }
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (sd?.session?.access_token || ''),
+          'apikey': 'sb_publishable_kxonlIAygw7FNq7vzdCLuA_6X_nGeM8',
+        };
+        const base = 'https://owrphdyzqzfigovpysaj.supabase.co/functions/v1/google-calendar-webhook';
+        await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'setup',    dealer_id: dealerId }) });
+        const r = await fetch(base, { method: 'POST', headers, body: JSON.stringify({ action: 'backfill', dealer_id: dealerId }) });
+        const result = await r.json().catch(() => ({}));
+        if (result.inserted || result.updated) {
+          if (typeof loadCalendarData === 'function') loadCalendarData(dealerId);
+        }
+      } catch { /* fire-and-forget — failures visible in Supabase logs */ }
     })();
   } else {
     if (connEl) connEl.style.display = 'none';
