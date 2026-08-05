@@ -248,7 +248,15 @@ serve(async (req) => {
   }
 
   try {
-    const { dealer_id } = JSON.parse(atob(state)) as { dealer_id: string; ts: number }
+    const { dealer_id, ts } = JSON.parse(atob(state)) as { dealer_id: string; ts: number }
+
+    // Reject malformed or stale state (the connect step mints it fresh; a valid
+    // OAuth round-trip completes in seconds). 10-minute window bounds replay.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!dealer_id || !UUID_RE.test(dealer_id) || typeof ts !== 'number' || Date.now() - ts > 10 * 60 * 1000) {
+      console.error('[gcal-auth] invalid or expired OAuth state — rejecting callback')
+      return Response.redirect(`${appUrl}/dashboard.html#settings`, 302)
+    }
 
     // ── 1. Exchange auth code for tokens ──────────────────────────────────
     const tokenRes = await fetch(GOOGLE_TOKEN_URL, {

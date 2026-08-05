@@ -354,8 +354,8 @@
       setMessage('Enter your email and password.', 'error');
       return;
     }
-    if (mode === 'signup' && password.length < 6) {
-      setMessage('Password must be at least 6 characters.', 'error');
+    if (mode === 'signup' && password.length < 8) {
+      setMessage('Password must be at least 8 characters.', 'error');
       return;
     }
 
@@ -377,7 +377,15 @@
       btn.disabled = false;
       btn.innerText = 'Create account';
       if (error) {
-        setMessage(error.message, 'error');
+        // Never reveal whether an email is already registered (account enumeration).
+        // Only surface clearly non-sensitive validation feedback; otherwise show the
+        // same neutral message we'd show for a brand-new signup.
+        if (/password/i.test(error.message)) {
+          setMessage('Password does not meet requirements. Use at least 8 characters.', 'error');
+        } else {
+          setMessage("If that email can be registered, you'll receive a confirmation link. Check your inbox.", 'success');
+          toggleMode();
+        }
       } else if (data.session) {
         // Email confirmation disabled — signed in immediately
         await routeAfterAuth();
@@ -396,14 +404,12 @@
       return;
     }
     setMessage('Sending reset link…', '');
-    const { error } = await supa.auth.resetPasswordForEmail(email, {
+    // Always show the same neutral result regardless of whether the account
+    // exists — prevents account enumeration via the reset endpoint.
+    await supa.auth.resetPasswordForEmail(email, {
       redirectTo: 'https://app.srisaamba.com/reset-password.html'
     });
-    if (error) {
-      setMessage(error.message, 'error');
-    } else {
-      setMessage('Password reset link sent. Check your email.', 'success');
-    }
+    setMessage("If that email is registered, you'll receive a reset link shortly.", 'success');
   }
 
   async function loginWithGoogle() {

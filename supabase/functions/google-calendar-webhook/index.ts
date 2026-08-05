@@ -141,16 +141,11 @@ serve(async (req) => {
   const resourceState = req.headers.get('x-goog-resource-state')
 
   if (resourceState !== null) {
-    const channelId  = req.headers.get('x-goog-channel-id')
-    const dealerId   = req.headers.get('x-goog-channel-token')  // we set this to dealer_id at setup
-    const resourceId = req.headers.get('x-goog-resource-id')
+    const channelId   = req.headers.get('x-goog-channel-id')
+    const resourceId  = req.headers.get('x-goog-resource-id')
+    const tokenDealer = req.headers.get('x-goog-channel-token')  // we set this to dealer_id at setup
 
-    console.log('[gcal-webhook] ping —',
-      'state:', resourceState,
-      'channel:', channelId,
-      'dealer:', dealerId,
-      'resource:', resourceId,
-    )
+    console.log('[gcal-webhook] ping —', 'state:', resourceState, 'channel:', channelId)
 
     // Validation ping — acknowledge immediately
     if (resourceState === 'sync') {
@@ -158,12 +153,36 @@ serve(async (req) => {
       return ok200()
     }
 
-    if (!dealerId) {
-      console.warn('[gcal-webhook] change ping has no x-goog-channel-token — cannot route to dealer')
+    if (!channelId) {
+      console.warn('[gcal-webhook] change ping has no x-goog-channel-id — ignoring')
       return ok200()
     }
 
     try {
+      // ── Authenticity: resolve the dealer by the STORED channel id (set at
+      // setup), never by the attacker-suppliable channel-token alone. Reject
+      // pings whose channel/resource don't match a registered channel. This
+      // stops forged pings from forcing a sync on an arbitrary dealership.
+      const { data: chDealer, error: chErr } = await supa
+        .from('dealerships')
+        .select('id, google_resource_id')
+        .eq('google_channel_id', channelId)
+        .maybeSingle()
+
+      if (chErr || !chDealer) {
+        console.warn('[gcal-webhook] ping for unknown channel', channelId, '— rejecting')
+        return ok200()
+      }
+      if (resourceId && chDealer.google_resource_id && resourceId !== chDealer.google_resource_id) {
+        console.warn('[gcal-webhook] resource id mismatch for channel', channelId, '— rejecting')
+        return ok200()
+      }
+      if (tokenDealer && tokenDealer !== chDealer.id) {
+        console.warn('[gcal-webhook] channel-token does not match registered dealer — rejecting')
+        return ok200()
+      }
+
+      const dealerId = chDealer.id
       // ── Fetch dealer credentials ──────────────────────────────────────
       const { data: dealer, error: dealerErr } = await supa
         .from('dealerships')
@@ -236,7 +255,7 @@ serve(async (req) => {
 
       // ── Process each changed event ────────────────────────────────────
       for (const evt of items) {
-        console.log('[gcal-webhook] processing event:', evt.id, '| status:', evt.status, '| summary:', evt.summary)
+        console.log('[gcal-webhook] processing event:', evt.id, '| status:', evt.status)
 
         // ── DELETED ────────────────────────────────────────────────────
         if (evt.status === 'cancelled') {
@@ -304,7 +323,7 @@ serve(async (req) => {
             status:           'confirmed',
           }
 
-          console.log('[gcal-webhook] inserting new appointment from Google event:', evt.id, JSON.stringify(newRow))
+          console.log('[gcal-webhook] inserting new appointment from Google event:', evt.id)
 
           const { data: inserted, error: insertErr } = await supa
             .from('appointments')
@@ -342,6 +361,30 @@ serve(async (req) => {
 
     if (!body.dealer_id) return jsonErr('dealer_id is required')
     const dealerId = body.dealer_id
+
+    // ── AUTHORIZATION ─────────────────────────────────────────────────────
+    // setup/backfill run privileged service-role work. They are triggered by
+    // the dashboard with the signed-in user's JWT, so require that the caller
+    // is actually a member of this dealership. RLS on dealership_members scopes
+    // the lookup to the caller's own dealership, so a row only comes back when
+    // dealerId is theirs. Without this, anyone on the internet could POST a
+    // dealer_id and force a calendar sync / channel re-registration (IDOR).
+    const authHeader = req.headers.get('Authorization') ?? ''
+    const userSupa = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } },
+    )
+    const { data: membership } = await userSupa
+      .from('dealership_members')
+      .select('dealership_id')
+      .eq('dealership_id', dealerId)
+      .maybeSingle()
+
+    if (!membership) {
+      console.warn('[gcal-webhook] unauthorized setup/backfill attempt for dealer:', dealerId)
+      return jsonErr('Forbidden', 403)
+    }
 
     // ── BACKFILL action — one-time historical import ──────────────────────
     if (body.action === 'backfill') {
