@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Auto AI — Dealer Dashboard · Powered by Sri Saamba</title>
-<meta name="description" content="Auto AI — the AI receptionist for car dealerships. Powered by Sri Saamba.">
+<title>Algo Auto AI — Dealer Dashboard · Powered by Sri Saamba</title>
+<meta name="description" content="Algo Auto AI — the AI receptionist for car dealerships. Powered by Sri Saamba.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;600;700;800&family=Instrument+Mono:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -394,7 +394,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     // 1. Safe Presentation Demo Mode Interceptor
     if (isDemoMode) {
       window.isDemoActive = true;
-      document.getElementById('sb-dealer-name').textContent = "Sri Saamba Demo Motors";
+      document.getElementById('sb-dealer-name').textContent = "Algo Demo Motors";
       const today = new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       document.getElementById('page-sub').textContent = today + ' · Demo Mode';
       document.getElementById('badge-actions').textContent = "8";
@@ -500,7 +500,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     <div class="sb-logo" style="cursor:pointer" onclick="goTo('dashboard')">
       <div class="sb-logo-mark">AA</div>
       <div>
-        <div class="sb-logo-text">Auto <span>AI</span></div>
+        <div class="sb-logo-text">Algo Auto <span>AI</span></div>
         <div style="font-size:9px;font-weight:600;color:rgba(255,255,255,.3);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-top:2px;">Powered by Sri Saamba</div>
       </div>
     </div>
@@ -897,7 +897,7 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
               <div class="form-grid">
                 <div class="form-field" style="grid-column:1/-1">
                   <label class="form-label" for="dp-name">Dealership Name</label>
-                  <input class="form-input" id="dp-name" type="text" placeholder="e.g. Sri Saamba Motors">
+                  <input class="form-input" id="dp-name" type="text" placeholder="e.g. Riverside Auto">
                 </div>
                 <div class="form-field" style="grid-column:1/-1">
                   <label class="form-label" for="dp-tagline">Tagline</label>
