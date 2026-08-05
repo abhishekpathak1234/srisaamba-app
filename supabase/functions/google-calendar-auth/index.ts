@@ -22,7 +22,7 @@
  *   GOOGLE_CLIENT_ID
  *   GOOGLE_CLIENT_SECRET
  *   GOOGLE_REDIRECT_URI   (must match Google Cloud Console exactly)
- *   APP_URL               (e.g. https://app.srisaamba.com)
+ *   APP_URL               (e.g. https://app.algobridge.cc)
  */
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -111,7 +111,7 @@ async function registerWatchChannel(opts: {
 
   // ── 2. Register push-notification channel ─────────────────────────────
   const channelId  = crypto.randomUUID()
-  const webhookUrl = 'https://app.srisaamba.com/api/calendar-webhook'
+  const webhookUrl = 'https://app.algobridge.cc/api/calendar-webhook'
 
   const watchRes  = await fetch(
     `${GOOGLE_CALENDAR_API}/calendars/${encodeURIComponent(calendarId)}/events/watch`,
@@ -165,7 +165,7 @@ serve(async (req) => {
   const clientId      = Deno.env.get('GOOGLE_CLIENT_ID')!
   const clientSecret  = Deno.env.get('GOOGLE_CLIENT_SECRET')!
   const redirectUri   = Deno.env.get('GOOGLE_REDIRECT_URI')!
-  const appUrl        = Deno.env.get('APP_URL') ?? 'https://app.srisaamba.com'
+  const appUrl        = Deno.env.get('APP_URL') ?? 'https://app.algobridge.cc'
 
   const supa = createClient(
     Deno.env.get('SUPABASE_URL')!,

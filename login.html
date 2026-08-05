@@ -407,7 +407,7 @@
     // Always show the same neutral result regardless of whether the account
     // exists — prevents account enumeration via the reset endpoint.
     await supa.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://app.srisaamba.com/reset-password.html'
+      redirectTo: 'https://app.algobridge.cc/reset-password.html'
     });
     setMessage("If that email is registered, you'll receive a reset link shortly.", 'success');
   }

@@ -568,7 +568,7 @@ serve(async (req) => {
 
     // ── Register push-notification channel ────────────────────────────────
     const channelId  = crypto.randomUUID()
-    const webhookUrl = 'https://app.srisaamba.com/api/calendar-webhook'
+    const webhookUrl = 'https://app.algobridge.cc/api/calendar-webhook'
 
     console.log('[gcal-webhook] STEP — registering watch channel', channelId, '→', webhookUrl, 'calendar:', calendarId)
 
@@ -604,7 +604,7 @@ serve(async (req) => {
       console.error(
         `[gcal-webhook] STEP FAILED — Google watch registration: HTTP ${errCode} ${errStatus} — ${errMessage}`,
         '\nFull response:', watchRaw,
-        '\nFix: verify app.srisaamba.com in Google Cloud Console → APIs & Services → Domain Verification',
+        '\nFix: verify app.algobridge.cc in Google Cloud Console → APIs & Services → Domain Verification',
       )
       // Return 200 so the browser doesn't see a red 500 — the channel simply won't be active
       return json200({ success: false, reason: errMessage, code: errCode, status: errStatus })
