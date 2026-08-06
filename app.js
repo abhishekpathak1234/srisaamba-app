@@ -207,7 +207,7 @@ window.loadLiveData = async function (dealerId) {
   if (todays.data) {
     document.getElementById('todays-bookings-body').innerHTML = window._todayAppts.length
         ? window._todayAppts.map(a => apptRow(a, false)).join('')
-        : '<tr><td colspan="4" class="empty">No appointments scheduled today</td></tr>';
+        : '<tr><td colspan="4"><div class="db-empty"><span class="db-empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4M8 2v4M3 10h5"/><path d="m17.5 17.5-1.5-1.25V14"/><circle cx="16" cy="16" r="6"/></svg><span class="sparkle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg></span></span><p class="db-empty-title">Your AI assistant hasn\'t scheduled any appointments today.</p><p class="db-empty-sub">Bookings will automatically appear here in real time.</p></div></td></tr>';
   }
   if (allAppts.data) {
     document.getElementById('all-bookings-body').innerHTML = allAppts.data.length
@@ -230,7 +230,7 @@ window.loadLiveData = async function (dealerId) {
   // Activity log processing
   const feed = document.getElementById('activity-feed');
   if (feed) {
-    feed.innerHTML = '<div class="empty">No recent account activity logs</div>';
+    feed.innerHTML = '<div class="db-empty compact"><span class="db-empty-icon sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/><circle cx="12" cy="12" r="1"/></svg></span><p class="db-empty-title">No recent AI events</p><p class="db-empty-sub narrow">Your dealership is running smoothly. Calls, replies and bookings stream here as they happen.</p></div>';
   }
 
   // Monthly views calculations

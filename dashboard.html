@@ -41,10 +41,36 @@
   --radius-lg:  16px;
   --font:       'Cabinet Grotesk', sans-serif;
   --mono:       'Instrument Mono', monospace;
-  --nav-w:      228px;
+  --nav-w:      300px;
   --topbar-h:   56px;
   --shadow:     0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
   --shadow-lg:  0 4px 24px rgba(0,0,0,.10);
+
+  /* Lovable-matched sidebar + dashboard-page tokens (scoped, new names,
+     computed from the "Algo Auto Elegance" Lovable export's OKLCH values —
+     do not overwrite the palette above so every other page is untouched) */
+  --sb-bg:              #090807;
+  --sb-fg:              #d3d0cd;
+  --sb-accent:          #1b1918;
+  --sb-accent-fg:       #f9f8f7;
+  --sb-primary:         #f6681e;
+  --sb-border:          rgba(255,255,255,.08);
+  --db-primary:         #f6681e;
+  --db-primary-end:     #e14d28;
+  --db-primary-soft:    #ffeede;
+  --db-success:         #0fa05c;
+  --db-info:            #3284d0;
+  --db-destructive:     #db2527;
+  --db-warning:         #e5a323;
+  --db-warning-fg:      #2a1c10;
+  --db-bg:              #f9f7f5;
+  --db-fg:              #151210;
+  --db-muted-fg:        #686460;
+  --db-border:          #e6e3e0;
+  --db-border-strong:   #d3d0cd;
+  --db-shadow-sm:  0 1px 2px -1px rgba(29,20,13,.08), 0 1px 3px 0 rgba(29,20,13,.06);
+  --db-shadow-lg:  0 4px 8px -4px rgba(29,20,13,.07), 0 24px 48px -12px rgba(29,20,13,.14);
+  --db-shadow-glow: 0 8px 28px -8px rgba(246,104,30,.45);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,48 +83,100 @@ a { text-decoration: none; color: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
-.app { display: grid; grid-template-columns: var(--nav-w) 1fr; grid-template-rows: var(--topbar-h) 1fr; height: 100vh; }
+.app { display: grid; grid-template-columns: var(--nav-w) 1fr; grid-template-rows: auto 1fr; height: 100vh; }
 
-/* ── SIDEBAR ─────────────────────────────────────────────── */
-.sidebar { grid-row: 1 / 3; background: var(--ink); display: flex; flex-direction: column; overflow-y: auto; z-index: 10; }
-.sb-logo { padding: 18px 20px 14px; border-bottom: 1px solid rgba(255,255,255,.06); display: flex; align-items: center; gap: 10px; }
-.sb-logo-mark { width: 32px; height: 32px; background: var(--orange); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 800; color: white; letter-spacing: -0.5px; flex-shrink: 0; }
-.sb-logo-text { font-size: 15px; font-weight: 700; color: white; letter-spacing: -0.3px; }
-.sb-logo-text span { color: var(--orange); }
-.sb-logo-img { height: 32px; width: auto; max-width: 100%; display: block; }
-.sb-dealer { padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,.06); }
-.sb-dealer-name { font-size: 13px; font-weight: 600; color: white; }
-.sb-dealer-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(255,255,255,.4); margin-top: 2px; font-family: var(--mono); }
+/* ── SIDEBAR — Lovable-matched (uses the --sb- and --db- tokens above) ── */
+.sidebar { grid-row: 1 / 3; background-color: var(--sb-bg); color: var(--sb-fg); border-right: 1px solid var(--sb-border); display: flex; flex-direction: column; overflow-y: auto; z-index: 10; }
+
+.sb-logo { position: relative; overflow: hidden; padding: 24px 20px; }
+.sb-logo::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 160px; background: linear-gradient(to bottom, rgba(246,104,30,.10), transparent); pointer-events: none; }
+.sb-logo-img { position: relative; display: block; height: 138px; width: 336px; max-width: none; margin: -24px 0 -24px -24px; object-fit: contain; }
+.sb-logo-sub { position: relative; margin-top: -4px; margin-left: -2px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: rgba(211,208,205,.55); }
+
+.sb-dealer { margin: 0 16px; padding: 14px; border: 1px solid var(--sb-border); border-radius: 20px; background: rgba(27,25,24,.45); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.sb-dealer-row { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 12px; }
+.sb-avatar { position: relative; display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 16px; background: linear-gradient(135deg, var(--sb-primary), rgba(246,104,30,.7)); font-size: 14px; font-weight: 700; color: #fff; }
+.sb-avatar .dot { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--sb-bg); background: var(--db-success); }
+.sb-dealer-name { font-size: 14px; font-weight: 600; color: var(--sb-accent-fg); }
+.sb-dealer-status { display: flex; align-items: center; gap: 6px; font-size: 11px; color: rgba(211,208,205,.55); margin-top: 2px; }
+.sb-dealer-divider { margin: 12px 0; height: 1px; background: var(--sb-border); }
+.sb-dealer-caption { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; color: rgba(211,208,205,.4); }
 .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #3DD68C; animation: breathe 2s infinite; flex-shrink: 0; }
 @keyframes breathe { 0%,100%{opacity:1;} 50%{opacity:.4;} }
 
-.sb-nav { padding: 10px 0; flex: 1; }
-.sb-section { padding: 8px 20px 4px; font-size: 9px; font-weight: 600; color: rgba(255,255,255,.25); text-transform: uppercase; letter-spacing: .12em; font-family: var(--mono); }
-.sb-item { display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 20px; margin: 1px 0; font-size: 13px; font-weight: 500; color: rgba(255,255,255,.5); cursor: pointer; transition: all .15s; border-left: 2px solid transparent; position: relative; }
-.sb-item:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.04); }
-.sb-item.active { color: white; border-left-color: var(--orange); background: rgba(255,92,26,.12); }
-.sb-badge { margin-left: auto; background: var(--orange); color: white; font-size: 10px; font-weight: 600; font-family: var(--mono); padding: 1px 6px; border-radius: 99px; min-width: 18px; text-align: center; }
+.sb-nav { padding: 24px 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 28px; }
+.sb-section { padding: 0 12px 10px; font-size: 10px; font-weight: 600; color: rgba(211,208,205,.35); text-transform: uppercase; letter-spacing: .16em; font-family: var(--mono); }
+.sb-item { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 10px 12px; margin: 1px 0; border-radius: 16px; font-size: 13.5px; font-weight: 500; color: rgba(211,208,205,.65); cursor: pointer; transition: background .2s, color .2s, transform .2s; position: relative; }
+.sb-item svg { width: 20px; height: 20px; flex-shrink: 0; color: rgba(211,208,205,.45); transition: color .2s; }
+.sb-item:not(.active):hover { color: var(--sb-fg); background: rgba(27,25,24,.5); transform: translateX(2px); }
+.sb-item:hover svg { color: rgba(211,208,205,.8); }
+.sb-item.active { color: var(--sb-accent-fg); background: var(--sb-accent); box-shadow: inset 0 1px 0 0 rgba(255,255,255,.06); }
+.sb-item.active svg { color: var(--sb-primary); }
+.sb-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); height: 20px; width: 3px; border-radius: 0 4px 4px 0; background: var(--sb-primary); }
+.sb-badge { margin-left: auto; background: var(--orange); color: white; font-size: 11px; font-weight: 600; font-family: var(--mono); padding: 0 6px; height: 20px; min-width: 20px; line-height: 20px; border-radius: 99px; text-align: center; }
 .sb-badge.green { background: var(--green); }
 .sb-badge.red { background: var(--red); }
-.sb-bottom { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,.06); }
-.sb-upgrade { background: rgba(255,92,26,.12); border: 1px solid rgba(255,92,26,.2); border-radius: var(--radius); padding: 12px; }
-.sb-upgrade p { font-size: 11px; color: rgba(255,255,255,.5); line-height: 1.5; margin-bottom: 8px; }
-.sb-upgrade p strong { color: rgba(255,255,255,.85); }
-.sb-upgrade-btn { width: 100%; background: var(--orange); color: white; font-size: 11px; font-weight: 600; padding: 7px; border-radius: 6px; letter-spacing: .04em; }
 
-.sb-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 32px); margin: 12px 16px 16px; height: 44px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; color: rgba(255,255,255,.55); cursor: pointer; transition: all .15s; letter-spacing: .01em; }
-.sb-logout:hover { background: rgba(255,60,40,.12); border-color: rgba(255,60,40,.25); color: rgba(255,120,100,.9); }
+.sb-logout-wrap { padding: 16px; border-top: 1px solid var(--sb-border); }
+.sb-logout { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px 16px; background: rgba(27,25,24,.6); border: 1px solid var(--sb-border); border-radius: 16px; font-size: 14px; font-weight: 600; color: var(--sb-accent-fg); cursor: pointer; transition: all .2s; }
+.sb-logout:hover { background: var(--sb-accent); }
+.sb-logout:active { transform: scale(.99); }
+.sb-logout svg { width: 16px; height: 16px; }
 
 /* ── TOPBAR ──────────────────────────────────────────────── */
-.topbar { grid-column: 2; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 9; }
+.topbar { grid-column: 2; background: rgba(255,255,255,.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 24px 32px; position: sticky; top: 0; z-index: 9; }
 .topbar-left { display: flex; align-items: center; gap: 12px; }
-.topbar-title { font-size: 18px; font-weight: 700; letter-spacing: -.4px; }
-.topbar-sub { font-size: 12px; color: var(--ink3); font-family: var(--mono); margin-top: 2px; }
+.topbar-title { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+.topbar-sub { font-size: 12px; color: var(--ink3); font-family: var(--mono); margin-top: 4px; }
 .topbar-right { display: flex; align-items: center; gap: 8px; }
 .tb-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; transition: all .15s; }
 .tb-btn.ghost { background: var(--surface2); color: var(--ink2); border: 1px solid var(--border2); }
 .tb-btn.ghost:hover { background: var(--surface3); }
 .ai-status { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: rgba(26,122,80,.08); border: 1px solid rgba(26,122,80,.2); border-radius: 99px; font-size: 11px; font-weight: 600; color: var(--green); font-family: var(--mono); }
+
+/* Dashboard route owns its own rich header in Lovable (not a shared-shell
+   element) — hide the generic .topbar only when the Dashboard page is
+   active, and show the dashboard-only header (.db-header) instead. */
+.app:has(#page-dashboard.active) > .topbar { display: none; }
+.db-header { display: none; }
+.app:has(#page-dashboard.active) .db-header { display: block; }
+
+/* ── DASHBOARD HEADER — Lovable-matched ─────────────────────── */
+.db-header {
+  position: sticky; top: 0; z-index: 9;
+  background: color-mix(in srgb, #fff 72%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid var(--db-border);
+  padding: 20px 24px;
+}
+@media (min-width: 1024px) { .db-header { padding-left: 32px; padding-right: 32px; } }
+@media (min-width: 1536px) { .db-header { padding-left: 48px; padding-right: 48px; } }
+.db-header-row { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 24px; }
+.db-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--db-muted-fg); }
+.db-breadcrumb svg { width: 14px; height: 14px; opacity: .6; }
+.db-breadcrumb .cur { font-weight: 500; color: rgba(21,18,16,.8); }
+.db-greeting { margin-top: 6px; font-size: 30px; font-weight: 700; letter-spacing: -.025em; color: var(--db-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-header-sub { margin-top: 4px; font-size: 13px; color: var(--db-muted-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.db-header-sub .sep { margin: 0 8px; color: var(--db-border-strong); }
+.db-header-sub .who { font-weight: 500; color: rgba(21,18,16,.7); }
+.db-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.db-search { display: none; align-items: center; gap: 8px; border: 1px solid var(--db-border); background: #fff; border-radius: 16px; padding: 8px 12px; color: var(--db-muted-fg); }
+@media (min-width: 1280px) { .db-search { display: flex; } }
+.db-search svg { width: 16px; height: 16px; flex-shrink: 0; }
+.db-search input { width: 208px; border: none; background: transparent; font-size: 13px; color: var(--db-fg); outline: none; }
+.db-search input::placeholder { color: var(--db-muted-fg); }
+.db-search:focus-within { border-color: var(--db-border-strong); }
+.db-icon-btn { display: grid; place-items: center; position: relative; width: 36px; height: 36px; border-radius: 16px; border: 1px solid var(--db-border); background: #fff; color: var(--db-muted-fg); cursor: pointer; transition: all .2s; }
+.db-icon-btn:hover { border-color: var(--db-border-strong); color: var(--db-fg); }
+.db-icon-btn svg { width: 16px; height: 16px; }
+.db-icon-btn .dot { position: absolute; top: 8px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--db-primary); }
+.db-cta { display: inline-flex; align-items: center; gap: 6px; border-radius: 16px; background: var(--db-primary); color: #fff; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: var(--db-shadow-glow); border: none; transition: filter .2s, transform .2s; }
+.db-cta:hover { filter: brightness(1.05); }
+.db-cta:active { transform: scale(.98); }
+.db-cta svg { width: 16px; height: 16px; }
+.db-avatar { position: relative; display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 16px; background: linear-gradient(135deg, var(--db-primary), var(--db-primary-end)); font-size: 12px; font-weight: 700; color: #fff; }
+.db-avatar .dot { position: absolute; right: -2px; bottom: -2px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--db-bg); background: var(--db-success); }
 
 /* ── LAYOUT MECHANICS ────────────────────────────────────── */
 .main { grid-column: 2; overflow-y: auto; }
@@ -106,6 +184,81 @@ a { text-decoration: none; color: inherit; }
 .page.active { display: block; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 .page-content { padding: 24px; max-width: 1400px; }
+/* Dashboard-only gutters/rhythm (scoped by id — every other page keeps the shared .page-content padding above) */
+#page-dashboard .page-content { padding: 24px 24px 56px; max-width: none; display: flex; flex-direction: column; gap: 32px; }
+@media (min-width: 1024px) { #page-dashboard .page-content { padding-left: 32px; padding-right: 32px; } }
+@media (min-width: 1536px) { #page-dashboard .page-content { padding-left: 48px; padding-right: 48px; } }
+
+/* ══════════════════════════════════════════════════════════
+   DASHBOARD PAGE — Lovable-matched StatCard + panel styles.
+   New scoped classes (.stat-*, .db-*) so the shared .kpi/
+   .panel rules used by every other page are untouched.
+   ══════════════════════════════════════════════════════════ */
+.stat-grid { display: grid; grid-template-columns: 1fr; gap: 20px; margin-bottom: 0; }
+@media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1280px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+.stat-card { position: relative; overflow: hidden; border-radius: 20px; border: 1px solid var(--db-border); background: #fff; box-shadow: var(--db-shadow-sm); transition: box-shadow .3s, border-color .3s, transform .3s; }
+.stat-card:hover { box-shadow: var(--db-shadow-lg); border-color: var(--db-border-strong); transform: translateY(-6px); }
+.stat-card .rail { position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.stat-card.s-primary .rail { background: var(--db-primary); }
+.stat-card.s-success .rail { background: var(--db-success); }
+.stat-card.s-info .rail { background: var(--db-info); }
+.stat-card.s-destructive .rail { background: var(--db-destructive); }
+.stat-card .glow { position: absolute; inset: 0; pointer-events: none; }
+.stat-card.s-primary .glow { background: linear-gradient(to bottom right, rgba(246,104,30,.10), transparent 60%, transparent); }
+.stat-card.s-success .glow { background: linear-gradient(to bottom right, rgba(15,160,92,.10), transparent 60%, transparent); }
+.stat-card.s-info .glow { background: linear-gradient(to bottom right, rgba(50,132,208,.10), transparent 60%, transparent); }
+.stat-card.s-destructive .glow { background: linear-gradient(to bottom right, rgba(219,37,39,.10), transparent 60%, transparent); }
+.stat-card .halo { position: absolute; top: -48px; right: -40px; width: 128px; height: 128px; border-radius: 50%; filter: blur(64px); opacity: 0; transition: opacity .5s; pointer-events: none; }
+.stat-card:hover .halo { opacity: 1; }
+.stat-card.s-primary .halo { background: rgba(246,104,30,.2); }
+.stat-card.s-success .halo { background: rgba(15,160,92,.2); }
+.stat-card.s-info .halo { background: rgba(50,132,208,.2); }
+.stat-card.s-destructive .halo { background: rgba(219,37,39,.2); }
+.stat-card .body { position: relative; padding: 24px; }
+.stat-top { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 16px; }
+.stat-label { font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--db-muted-fg); }
+.stat-icon { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 16px; transition: transform .3s; }
+.stat-icon svg { width: 20px; height: 20px; }
+.stat-card:hover .stat-icon { transform: translateY(-2px) scale(1.05); }
+.stat-card.s-primary .stat-icon { background: rgba(246,104,30,.12); color: var(--db-primary); box-shadow: inset 0 0 0 1px rgba(246,104,30,.2); }
+.stat-card.s-success .stat-icon { background: rgba(15,160,92,.12); color: var(--db-success); box-shadow: inset 0 0 0 1px rgba(15,160,92,.2); }
+.stat-card.s-info .stat-icon { background: rgba(50,132,208,.12); color: var(--db-info); box-shadow: inset 0 0 0 1px rgba(50,132,208,.2); }
+.stat-card.s-destructive .stat-icon { background: rgba(219,37,39,.12); color: var(--db-destructive); box-shadow: inset 0 0 0 1px rgba(219,37,39,.2); }
+.stat-value { margin-top: 28px; font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; letter-spacing: -.03em; color: var(--db-fg); }
+.stat-suffix { margin-left: 2px; font-size: 24px; font-weight: 600; color: var(--db-muted-fg); }
+.stat-meta { margin-top: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.stat-trend { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.stat-trend svg { width: 12px; height: 12px; }
+.stat-card.s-success .stat-trend, .stat-card.s-primary .stat-trend, .stat-card.s-info .stat-trend, .stat-card.s-destructive .stat-trend { background: rgba(15,160,92,.1); color: var(--db-success); }
+.stat-caption { font-size: 12px; color: var(--db-muted-fg); }
+
+.db-grid-3-1 { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 1280px) { .db-grid-3-1 { grid-template-columns: minmax(0,2fr) minmax(0,1fr); } }
+.db-panel { background: #fff; border: 1px solid var(--db-border); border-radius: 20px; box-shadow: var(--db-shadow-sm); overflow: hidden; display: flex; flex-direction: column; }
+.db-panel-head { padding: 20px 24px; border-bottom: 1px solid var(--db-border); display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 16px; }
+.db-panel-title { font-size: 15px; font-weight: 600; color: var(--db-fg); }
+.db-panel-sub { margin-top: 2px; font-size: 12px; color: var(--db-muted-fg); }
+.db-panel-actions { display: flex; align-items: center; gap: 8px; }
+.db-export-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--db-border); background: #fff; border-radius: 10px; padding: 6px 10px; font-size: 13px; font-weight: 500; color: var(--db-fg); cursor: pointer; transition: border-color .2s, background-color .2s; }
+.db-export-btn:hover { border-color: var(--db-border-strong); background: var(--db-card-bg, #f4f2ef); }
+.db-export-btn svg { width: 14px; height: 14px; }
+.db-live-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(15,160,92,.1); color: var(--db-success); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; }
+.db-view-all { display: inline-flex; align-items: center; gap: 6px; border-radius: 10px; padding: 6px 10px; font-size: 13px; font-weight: 500; color: var(--db-primary); cursor: pointer; transition: background-color .2s; }
+.db-view-all:hover { background: rgba(246,104,30,.08); }
+.db-panel table { width: 100%; border-collapse: collapse; }
+.db-panel th { padding: 12px 24px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--db-muted-fg); text-align: left; background: rgba(244,242,239,.4); border-bottom: 1px solid var(--db-border); }
+.db-panel td { padding: 16px 24px; font-size: 14px; border-bottom: 1px solid var(--db-border); }
+.db-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 80px 24px; text-align: center; }
+.db-empty.compact { padding: 64px 24px; }
+.db-empty-icon { position: relative; display: grid; place-items: center; width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, rgba(246,104,30,.12), transparent); color: var(--db-primary); box-shadow: inset 0 0 0 1px rgba(246,104,30,.15); flex-shrink: 0; }
+.db-empty-icon svg { width: 28px; height: 28px; }
+.db-empty-icon .sparkle { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--db-border); background: #fff; color: var(--db-primary); box-shadow: var(--db-shadow-sm); }
+.db-empty-icon .sparkle svg { width: 14px; height: 14px; }
+.db-empty-icon.sm { width: 56px; height: 56px; }
+.db-empty-title { margin-top: 20px; font-size: 14px; font-weight: 600; color: var(--db-fg); }
+.db-empty-sub { margin-top: 6px; max-width: 384px; font-size: 14px; line-height: 1.6; color: var(--db-muted-fg); }
+.db-empty-sub.narrow { max-width: 230px; }
 
 .digest-card { background: var(--ink); border-radius: var(--radius-lg); padding: 18px 20px; color: white; margin-bottom: 14px; }
 .digest-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
@@ -477,6 +630,20 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     document.getElementById('sb-dealer-name').textContent = d.name;
     const today = new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     document.getElementById('page-sub').textContent = today + ' · ' + d.name;
+
+    // Dashboard-only header: time-of-day greeting + real dealer initials (real
+    // data, not Lovable's hardcoded "Abhishek"/"AD" mock values)
+    const hour = new Date().getHours();
+    const greetWord = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const firstName = (d.name || '').trim().split(/\s+/)[0] || 'there';
+    const initials = (d.name || '').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'AA';
+    const greetEl = document.getElementById('db-greeting');
+    if (greetEl) greetEl.textContent = greetWord + ', ' + firstName;
+    const subEl = document.getElementById('db-header-sub');
+    if (subEl) subEl.innerHTML = '<span>' + today + '</span><span class="sep">·</span><span class="who">' + d.name + '</span>';
+    document.querySelectorAll('#sb-avatar, #db-avatar').forEach(el => {
+      el.childNodes[0].nodeValue = initials;
+    });
     // initFromHash() fires before auth resolves — if calendar is already the active
     // page when the dealership becomes available, load its data now.
     const activeHash = window.location.hash.slice(1);
@@ -500,35 +667,116 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
   <aside class="sidebar">
     <div class="sb-logo" style="cursor:pointer" onclick="goTo('dashboard')">
       <img class="sb-logo-img" src="assets/algo-auto-ai-logo.png" alt="Algo Auto AI">
+      <p class="sb-logo-sub">Powered by AlgoBridge</p>
     </div>
     <div class="sb-dealer">
-      <div class="sb-dealer-name" id="sb-dealer-name">—</div>
-      <div class="sb-dealer-status"><span class="live-dot"></span> Assistant live · 24/7</div>
+      <div class="sb-dealer-row">
+        <span class="sb-avatar" id="sb-avatar">AD<span class="dot"></span></span>
+        <div>
+          <div class="sb-dealer-name" id="sb-dealer-name">—</div>
+          <div class="sb-dealer-status"><span class="live-dot"></span> Assistant live</div>
+        </div>
+      </div>
+      <div class="sb-dealer-divider"></div>
+      <div class="sb-dealer-caption">24/7 AI Assistant</div>
     </div>
     <nav class="sb-nav">
-      <div class="sb-section">Overview</div>
-      <div class="sb-item active" data-page="dashboard" onclick="goTo('dashboard')">Dashboard</div>
-      <div class="sb-item" data-page="calendar" onclick="goTo('calendar')">📅 Calendar</div>
-      <div class="sb-section">Conversations</div>
-      <div class="sb-item" data-page="smart-inbox" onclick="goTo('smart-inbox')">Smart Inbox</div>
-      <div class="sb-item" data-page="action-center" onclick="goTo('action-center')">Action Center <span class="sb-badge orange" id="badge-actions">0</span></div>
-      <div class="sb-section">Business</div>
-      <div class="sb-item" data-page="test-drives" onclick="goTo('test-drives')">Test Drives <span class="sb-badge orange" id="badge-test-drives">0</span></div>
-      <div class="sb-item" data-page="missed-calls" onclick="goTo('missed-calls')">Missed Calls <span class="sb-badge red" id="badge-missed">0</span></div>
-      <div class="sb-item" data-page="performance" onclick="goTo('performance')">Performance</div>
-      <div class="sb-section">Account</div>
-      <div class="sb-item" data-page="settings" onclick="goTo('settings')">⚙️ Settings</div>
-      <div class="sb-item" data-page="profile" onclick="goTo('profile')">👤 Profile</div>
+      <div>
+        <div class="sb-section">Overview</div>
+        <div class="sb-item active" data-page="dashboard" onclick="goTo('dashboard')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          <span>Dashboard</span>
+        </div>
+        <div class="sb-item" data-page="calendar" onclick="goTo('calendar')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+          <span>Calendar</span>
+        </div>
+      </div>
+      <div>
+        <div class="sb-section">Conversations</div>
+        <div class="sb-item" data-page="smart-inbox" onclick="goTo('smart-inbox')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+          <span>Smart Inbox</span>
+        </div>
+        <div class="sb-item" data-page="action-center" onclick="goTo('action-center')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Action Center</span>
+          <span class="sb-badge orange" id="badge-actions">0</span>
+        </div>
+      </div>
+      <div>
+        <div class="sb-section">Business</div>
+        <div class="sb-item" data-page="test-drives" onclick="goTo('test-drives')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2v-3.5a2 2 0 0 0-.4-1.2L18 7H6l-2.6 5.3a2 2 0 0 0-.4 1.2V17h2"/><path d="M7 17h10"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+          <span>Test Drives</span>
+          <span class="sb-badge orange" id="badge-test-drives">0</span>
+        </div>
+        <div class="sb-item" data-page="missed-calls" onclick="goTo('missed-calls')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-6 6M16 7l6 6"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.6 12.6 0 0 0 .68 2.34 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.25a2 2 0 0 1 2.11-.45c.74.33 1.53.56 2.34.68A2 2 0 0 1 22 16.92z"/></svg>
+          <span>Missed Calls</span>
+          <span class="sb-badge red" id="badge-missed">0</span>
+        </div>
+        <div class="sb-item" data-page="performance" onclick="goTo('performance')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+          <span>Performance</span>
+        </div>
+      </div>
+      <div>
+        <div class="sb-section">Account</div>
+        <div class="sb-item" data-page="settings" onclick="goTo('settings')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </div>
+        <div class="sb-item" data-page="profile" onclick="goTo('profile')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+          <span>Profile</span>
+        </div>
+      </div>
     </nav>
-    <button class="sb-logout" onclick="logout()">🚪 Log Out</button>
+    <div class="sb-logout-wrap">
+      <button class="sb-logout" onclick="logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        Log Out
+      </button>
+    </div>
   </aside>
 
-  <!-- ── TOPBAR ───────────────────────────────────────────── -->
+  <!-- ── TOPBAR (shared shell — hidden on the Dashboard page, which owns its own header below) ── -->
   <header class="topbar">
     <div class="topbar-left">
       <div>
         <div class="topbar-title" id="page-title">Dashboard</div>
         <div class="topbar-sub" id="page-sub"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── DASHBOARD-ONLY HEADER — Lovable-matched, shown only when #page-dashboard is active ── -->
+  <header class="db-header">
+    <div class="db-header-row">
+      <div style="min-width:0">
+        <nav class="db-breadcrumb" aria-label="Breadcrumb">
+          <span>Algo Auto AI</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          <span class="cur">Dashboard</span>
+        </nav>
+        <h1 class="db-greeting" id="db-greeting">Good day</h1>
+        <p class="db-header-sub" id="db-header-sub">—</p>
+      </div>
+      <div class="db-header-actions">
+        <label class="db-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" placeholder="Search customers, calls…">
+        </label>
+        <button type="button" class="db-icon-btn" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+        <button type="button" class="db-cta" onclick="openApptModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+          <span>New Appointment</span>
+        </button>
+        <span class="db-avatar" id="db-avatar">AD<span class="dot"></span></span>
       </div>
     </div>
   </header>
@@ -539,44 +787,120 @@ td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border)
     <!-- DASHBOARD PANEL -->
     <div class="page active" id="page-dashboard">
       <div class="page-content">
-        <div class="kpi-grid">
-          <div class="kpi k-orange">
-            <div class="kpi-label">Missed calls recovered</div>
-            <div class="kpi-value" id="kpi-missed" data-count="0">0</div>
+        <div class="stat-grid">
+          <div class="stat-card s-primary">
+            <span class="rail"></span>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="halo" aria-hidden="true"></span>
+            <div class="body">
+              <div class="stat-top">
+                <div class="stat-label">Missed calls recovered</div>
+                <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-6 6M16 7l6 6"/><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.6 12.6 0 0 0 .68 2.34 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.74-1.25a2 2 0 0 1 2.11-.45c.74.33 1.53.56 2.34.68A2 2 0 0 1 22 16.92z"/></svg></span>
+              </div>
+              <div class="stat-value" id="kpi-missed" data-count="0">0</div>
+              <div class="stat-meta">
+                <span class="stat-trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>0%</span>
+                <span class="stat-caption">vs. yesterday</span>
+              </div>
+            </div>
           </div>
-          <div class="kpi k-green">
-            <div class="kpi-label">Avg response time</div>
-            <div class="kpi-value" id="kpi-speed">0<span style="font-size:18px">s</span></div>
+          <div class="stat-card s-success">
+            <span class="rail"></span>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="halo" aria-hidden="true"></span>
+            <div class="body">
+              <div class="stat-top">
+                <div class="stat-label">Avg response time</div>
+                <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+              </div>
+              <div class="stat-value" id="kpi-speed">0<span class="stat-suffix">s</span></div>
+              <div class="stat-meta">
+                <span class="stat-trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>0s</span>
+                <span class="stat-caption">instant AI pickup</span>
+              </div>
+            </div>
           </div>
-          <div class="kpi k-blue">
-            <div class="kpi-label">Test drives today</div>
-            <div class="kpi-value" id="kpi-afterhours" data-count="0">0</div>
+          <div class="stat-card s-info">
+            <span class="rail"></span>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="halo" aria-hidden="true"></span>
+            <div class="body">
+              <div class="stat-top">
+                <div class="stat-label">Test drives today</div>
+                <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2v-3.5a2 2 0 0 0-.4-1.2L18 7H6l-2.6 5.3a2 2 0 0 0-.4 1.2V17h2"/><path d="M7 17h10"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></span>
+              </div>
+              <div class="stat-value" id="kpi-afterhours" data-count="0">0</div>
+              <div class="stat-meta">
+                <span class="stat-trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>0%</span>
+                <span class="stat-caption">scheduled by assistant</span>
+              </div>
+            </div>
           </div>
-          <div class="kpi k-red">
-            <div class="kpi-label">Revenue protected</div>
-            <div class="kpi-value" id="kpi-revenue" data-count="0" data-prefix="$">0</div>
+          <div class="stat-card s-destructive">
+            <span class="rail"></span>
+            <span class="glow" aria-hidden="true"></span>
+            <span class="halo" aria-hidden="true"></span>
+            <div class="body">
+              <div class="stat-top">
+                <div class="stat-label">Revenue protected</div>
+                <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span>
+              </div>
+              <div class="stat-value" id="kpi-revenue" data-count="0" data-prefix="$">0</div>
+              <div class="stat-meta">
+                <span class="stat-trend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>$0</span>
+                <span class="stat-caption">estimated gross saved</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="grid-3-1">
-          <div class="panel">
-            <div class="panel-head">
-              <div class="panel-title">Today's Activity</div>
-              <span style="font-size:11px;font-weight:700;color:var(--orange);font-family:var(--mono);cursor:pointer" onclick="goTo('today-activity')">View all →</span>
+        <div class="db-grid-3-1">
+          <div class="db-panel">
+            <div class="db-panel-head">
+              <div style="min-width:0">
+                <div class="db-panel-title">Today's Activity</div>
+                <div class="db-panel-sub">Bookings and conversations handled by your assistant</div>
+              </div>
+              <div class="db-panel-actions">
+                <button type="button" class="db-export-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                  Export
+                </button>
+                <span class="db-view-all" onclick="goTo('today-activity')">View all →</span>
+              </div>
             </div>
             <div class="table-wrap">
               <table>
                 <thead><tr><th>Customer</th><th>Vehicle / Type</th><th>Time</th><th>Status</th></tr></thead>
                 <tbody id="todays-bookings-body">
-                  <tr><td colspan="4" class="empty">No appointments scheduled today</td></tr>
+                  <tr><td colspan="4">
+                    <div class="db-empty">
+                      <span class="db-empty-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7.5V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3.5"/><path d="M16 2v4M8 2v4M3 10h5"/><path d="m17.5 17.5-1.5-1.25V14"/><circle cx="16" cy="16" r="6"/></svg>
+                        <span class="sparkle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8"/></svg></span>
+                      </span>
+                      <p class="db-empty-title">Your AI assistant hasn't scheduled any appointments today.</p>
+                      <p class="db-empty-sub">Bookings will automatically appear here in real time.</p>
+                    </div>
+                  </td></tr>
                 </tbody>
               </table>
             </div>
           </div>
-          <div class="panel">
-            <div class="panel-head"><div class="panel-title">Live activity feed</div></div>
+          <div class="db-panel">
+            <div class="db-panel-head">
+              <div class="db-panel-title">Live activity feed</div>
+              <span class="db-live-badge">
+                <span class="live-dot"></span>
+                Live
+              </span>
+            </div>
             <div class="activity-feed" id="activity-feed">
-              <div class="empty">No recent account activity logs</div>
+              <div class="db-empty compact">
+                <span class="db-empty-icon sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/><circle cx="12" cy="12" r="1"/></svg></span>
+                <p class="db-empty-title">No recent AI events</p>
+                <p class="db-empty-sub narrow">Your dealership is running smoothly. Calls, replies and bookings stream here as they happen.</p>
+              </div>
             </div>
           </div>
         </div>
