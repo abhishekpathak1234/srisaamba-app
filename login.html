@@ -77,6 +77,8 @@
     gap: 12px;
     margin-bottom: 52px;
   }
+  .auth-logo-img { width: 520px; max-width: 100%; height: auto; display: block; }
+  .card-logo-img { width: 400px; max-width: 100%; height: auto; display: block; margin: 0 auto; }
   .auth-logo-mark {
     width: 38px; height: 38px;
     background: var(--orange);
@@ -261,12 +263,9 @@
   <!-- Left branding — desktop only, no JS -->
   <div class="auth-left">
     <div class="auth-logo-row">
-      <div class="auth-logo-mark">AA</div>
-      <div>
-        <div class="auth-logo-name">Algo Auto <span>AI</span></div>
-        <div class="auth-logo-sub">Powered by AlgoBridge</div>
-      </div>
+      <img class="auth-logo-img" src="assets/algo-auto-ai-logo.png" alt="Algo Auto AI">
     </div>
+    <div class="auth-logo-sub" style="margin-bottom:14px;">Powered by AlgoBridge</div>
     <div class="auth-tag">— Welcome back</div>
     <h1 class="auth-heading">Your automation<br><span>command center.</span></h1>
     <p class="auth-subtext">Sign in to monitor agents, capture leads after hours, and watch every workflow run in real time.</p>
@@ -281,8 +280,7 @@
 
       <!-- Mobile-only logo (hidden on desktop) -->
       <div class="card-logo">
-        <div class="card-logo-mark">AA</div>
-        <div class="card-logo-text">Algo Auto <span>AI</span></div>
+        <img class="card-logo-img" src="assets/algo-auto-ai-logo.png" alt="Algo Auto AI">
       </div>
       <div class="card-powered">Powered by AlgoBridge</div>
       <div class="card-title">Sign in</div>
