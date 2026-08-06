@@ -10,221 +10,261 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <style>
+  /* ── Tokens — colors computed exactly from the Lovable source's
+     OKLCH design tokens (dark theme) via the OKLab->sRGB conversion,
+     not eyeballed. ── */
   :root {
-    --bg: #0a0908;
-    --surface: #131211;
-    --surface2: #1a1917;
-    --ink: #ffffff;
-    --ink2: #aaa9a6;
-    --ink3: #666462;
-    --border: rgba(255,255,255,.05);
-    --border2: #2d2b28;
-    --orange: #FF5C1A;
-    --green: #4ade80;
+    --bg: #140e0a;
+    --surface: #1d1713;
+    --card-tint: #1d1713;
+    --ink: #f4f1ed;
+    --ink2: #c9c4bd;
+    --muted-fg: #a39d97;
+    --ink3: #a39d97;
+    --border2: rgba(255,255,255,.08);
+    --orange: #f06a2e;
+    --orange-end: #fb8304;
+    --logo-glow: #fa6e1d;
+    --green: #3fb171;
     --red: #f87171;
-    --radius: 10px;
-    --radius-lg: 16px;
+    --radius: 12px;
+    --radius-lg: 20px;
     --font: 'Cabinet Grotesk', sans-serif;
     --mono: 'Instrument Mono', monospace;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { margin: 0; }
 
   body {
     font-family: var(--font);
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 24px;
     position: relative;
     overflow-x: hidden;
   }
 
-  /* Subtle grid overlay */
+  /* Grid — 64px cells, 2.2% white lines, slow 40s drift, radial mask */
   .grid-overlay {
     position: fixed;
     inset: 0;
     background-image:
-      linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
-    background-size: 44px 44px;
+      linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 100%);
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, black 30%, transparent 100%);
     pointer-events: none;
     z-index: 0;
+    animation: grid-drift 40s linear infinite;
+  }
+  @keyframes grid-drift { from { background-position: 0 0; } to { background-position: 64px 64px; } }
+
+  .glow-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      radial-gradient(520px 360px at 16% 40%, rgba(240,106,46,.08), transparent 72%),
+      radial-gradient(760px 520px at 84% 16%, rgba(240,106,46,.045), transparent 74%),
+      radial-gradient(900px 700px at 50% 110%, rgba(240,106,46,.03), transparent 70%);
   }
 
-  /* Two-column layout */
-  .auth-layout {
-    display: flex;
-    width: 100%;
-    max-width: 1040px;
-    align-items: center;
-    gap: 60px;
-    z-index: 1;
+  .auth-fade { animation: auth-fade-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .auth-fade-delay { animation-delay: 140ms; }
+  @keyframes auth-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .grid-overlay { animation: none; }
+    .auth-fade, .auth-fade-delay { animation: none; }
+  }
+
+  /* ── Layout — mirrors max-w-7xl grid, gap-14/24, px-6/12, py-12 ── */
+  .auth-main {
     position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: center;
+    gap: 56px;
+    padding: 48px 24px;
+  }
+  @media (min-width: 1024px) {
+    .auth-main { grid-template-columns: 1fr 1fr; gap: 96px; padding: 48px 48px; }
   }
 
-  /* ── Left branding (desktop only) ── */
-  .auth-left {
-    flex: 1;
-    max-width: 460px;
-    display: none;
+  /* ── Left branding ── */
+  .auth-left { max-width: 576px; }
+
+  .auth-logo-row { position: relative; display: inline-block; }
+  .auth-logo-glow {
+    position: absolute; inset: 8% 22%; border-radius: 9999px;
+    background: radial-gradient(closest-side, rgba(250,110,29,.26), transparent 100%);
+    filter: blur(18px); pointer-events: none;
   }
-  .auth-logo-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 52px;
+  .auth-logo-img {
+    position: relative; display: block;
+    height: 224px; width: auto; max-width: 100%;
+    margin: -24px 0 -40px -28px;
+    object-fit: contain;
   }
-  .auth-logo-img { width: 520px; max-width: 100%; height: auto; display: block; }
-  .card-logo-img { width: 400px; max-width: 100%; height: auto; display: block; margin: 0 auto; }
-  .auth-logo-mark {
-    width: 38px; height: 38px;
-    background: var(--orange);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 15px; font-weight: 800; color: #fff;
-    flex-shrink: 0;
+  .auth-logo-sub {
+    position: relative; margin: -4px 0 0 4px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted-fg);
   }
-  .auth-logo-name  { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; line-height: 1.2; }
-  .auth-logo-name span { color: var(--orange); }
-  .auth-logo-sub   { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; color: var(--ink3); font-family: var(--mono); text-transform: uppercase; margin-top: 2px; }
-  .auth-tag        { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--orange); font-family: var(--mono); text-transform: uppercase; margin-bottom: 14px; }
-  .auth-heading    { font-size: 40px; font-weight: 800; line-height: 1.1; letter-spacing: -0.5px; margin-bottom: 18px; }
+
+  .auth-tag {
+    margin-top: 48px;
+    font-family: var(--mono); font-size: 11px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--orange);
+  }
+  .auth-heading {
+    margin-top: 16px;
+    font-size: clamp(35.2px, 4.8vw, 56.32px);
+    font-weight: 700; line-height: 1.02; letter-spacing: -0.035em;
+  }
   .auth-heading span { color: var(--orange); }
-  .auth-subtext    { font-size: 15px; color: var(--ink3); line-height: 1.65; margin-bottom: 38px; }
-  .auth-status     { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink3); }
-  .auth-status-dot { color: #22c55e; }
+  .auth-subtext {
+    margin-top: 24px; max-width: 480px;
+    font-size: 16px; line-height: 1.7; color: var(--muted-fg);
+  }
+  @media (min-width: 640px) { .auth-subtext { font-size: 17px; } }
+
+  .auth-status {
+    margin-top: 48px;
+    display: flex; flex-wrap: wrap; align-items: center;
+    row-gap: 8px; column-gap: 20px;
+    font-size: 13px; letter-spacing: .01em; color: var(--muted-fg);
+  }
+  .auth-status-item { display: flex; align-items: center; gap: 8px; }
+  .auth-status-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); box-shadow: 0 0 8px var(--green);
+    display: inline-block;
+  }
+  .auth-status-sep { width: 1px; height: 12px; background: rgba(255,255,255,.06); display: inline-block; }
 
   /* ── Right card ── */
-  .auth-right { width: 100%; max-width: 420px; flex-shrink: 0; position: relative; }
-
-  /* Subtle orange glow under the card */
-  .auth-right::after {
-    content: '';
-    position: absolute;
-    bottom: -14px; left: 8%; right: 8%;
-    height: 40px;
-    background: radial-gradient(ellipse, rgba(255,92,26,.16) 0%, transparent 70%);
-    filter: blur(14px);
-    pointer-events: none;
-    z-index: -1;
-  }
-
+  .auth-right { width: 100%; }
   .login-box {
-    background: var(--surface);
-    border: 1px solid var(--border2);
-    padding: 40px 36px;
+    max-width: 440px; margin: 0 auto;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),
+      rgba(29,23,19,.7);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.07);
     border-radius: var(--radius-lg);
-    width: 100%;
-    box-shadow: 0 0 0 1px rgba(255,255,255,.03), 0 20px 60px rgba(0,0,0,.55);
+    padding: 24px 28px 28px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 30px 70px -30px rgba(0,0,0,.7);
   }
-
-  /* Card logo — shown on mobile, hidden on desktop (left col shows it) */
-  .card-logo {
-    display: flex; align-items: center; gap: 10px;
-    justify-content: center;
-    margin-bottom: 4px;
-  }
-  .card-logo-mark {
-    width: 34px; height: 34px;
-    background: var(--orange);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 800; color: #fff;
-  }
-  .card-logo-text { font-size: 17px; font-weight: 800; letter-spacing: -0.4px; }
-  .card-logo-text span { color: var(--orange); }
-  .card-powered {
-    text-align: center;
-    font-size: 9px; color: var(--ink3);
-    font-family: var(--mono); letter-spacing: .1em;
-    text-transform: uppercase; margin-bottom: 20px;
-  }
-  .card-title {
-    font-size: 22px; font-weight: 700; letter-spacing: -0.4px;
-    color: var(--ink); margin-bottom: 4px; text-align: center;
-  }
+  @media (min-width: 640px) { .login-box { padding: 28px 36px 32px; } }
 
   .subtitle {
     text-align: center;
-    font-size: 12px;
-    color: var(--ink3);
-    font-family: var(--mono);
-    margin-bottom: 26px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--muted-fg);
+    margin-bottom: 24px;
   }
+
+  .auth-form-fields { display: flex; flex-direction: column; gap: 16px; }
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
 
   label {
     display: block;
-    font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .1em;
-    color: var(--ink3); font-family: var(--mono);
-    margin-bottom: 6px;
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .12em;
+    color: var(--muted-fg); font-family: var(--mono);
   }
 
   input {
     width: 100%;
-    padding: 12px 14px;
-    margin-bottom: 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border2);
+    height: 50px;
+    padding: 0 16px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
     border-radius: var(--radius);
-    font-size: 14px;
+    font-size: 15px;
     font-family: var(--font);
     color: var(--ink);
     outline: none;
-    transition: border-color .15s, background .15s;
+    transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
   }
-  input:focus { border-color: var(--orange); background: #1f1e1c; }
-  input::placeholder { color: var(--ink3); }
+  input:hover { border-color: rgba(255,255,255,.14); }
+  input:focus {
+    border-color: rgba(240,106,46,.7);
+    background: rgba(255,255,255,.065);
+    box-shadow: 0 0 0 3px rgba(240,106,46,.22), 0 0 22px -4px rgba(240,106,46,.35);
+  }
+  input::placeholder { color: var(--muted-fg); }
 
   button.primary {
     width: 100%;
-    padding: 13px;
-    background: linear-gradient(90deg, #ff7a00 0%, #ff3d00 100%);
+    height: 50px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: linear-gradient(100deg, var(--orange) 0%, var(--orange-end) 100%);
     color: white;
     border: none;
     border-radius: var(--radius);
-    font-size: 14px; font-weight: 700;
+    font-size: 15px; font-weight: 700;
     font-family: var(--font);
     cursor: pointer;
-    transition: opacity .15s, transform .1s;
+    box-shadow: 0 10px 26px -12px rgba(240,106,46,.7);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
   }
-  button.primary:hover  { opacity: .88; }
-  button.primary:active { transform: scale(.99); }
-  button.primary:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary:hover:not(:disabled) {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 34px -14px rgba(240,106,46,.8);
+  }
+  button.primary:active:not(:disabled) { transform: translateY(0); }
+  button.primary:disabled { opacity: .75; cursor: not-allowed; }
 
-  .divider {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 18px;
-    font-size: 10px;
-    color: var(--ink3);
-    font-family: var(--mono);
-    letter-spacing: .08em;
+  .spinner {
+    width: 15px; height: 15px; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
   }
-  .divider::before, .divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border2);
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .forgot-row { display: flex; justify-content: flex-end; padding-top: 2px; }
+  #forgot-link {
+    font-size: 12px; font-weight: 500;
+    color: var(--muted-fg); cursor: pointer; text-decoration: none;
+    transition: color .15s ease;
   }
+  #forgot-link:hover { color: var(--orange); }
+
+  .divider { margin: 20px 0; display: flex; align-items: center; gap: 16px; }
+  .divider span { flex: 1; height: 1px; background: rgba(255,255,255,.07); }
+  .divider em { font-style: normal; font-size: 12px; color: var(--muted-fg); font-family: var(--font); }
 
   button.google {
     width: 100%;
-    margin-top: 14px;
-    padding: 12px;
-    background: var(--surface2);
+    height: 50px;
+    background: rgba(255,255,255,.055);
     color: var(--ink);
-    border: 1px solid var(--border2);
+    border: 1px solid rgba(255,255,255,.09);
     border-radius: var(--radius);
-    font-size: 14px; font-weight: 600;
+    font-size: 15px; font-weight: 500;
     font-family: var(--font);
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 9px;
-    transition: background .15s, border-color .15s;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    transition: background .2s ease, border-color .2s ease, transform .18s ease;
   }
-  button.google:hover { background: #222120; border-color: #3d3b38; }
+  button.google svg { width: 21px; height: 21px; flex-shrink: 0; }
+  button.google:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.2); transform: translateY(-1px); }
+  button.google:active { transform: translateY(0); }
 
   #message {
     text-align: center;
@@ -239,70 +279,69 @@
   .switch-mode {
     text-align: center;
     margin-top: 20px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border2);
-    font-size: 13px;
-    color: var(--ink3);
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,.07);
+    font-size: 14px;
+    color: var(--muted-fg);
   }
-  .switch-mode a { color: var(--orange); font-weight: 700; cursor: pointer; text-decoration: none; }
-  .switch-mode a:hover { text-decoration: underline; }
-
-  /* Desktop: show left col, hide in-card logo/title */
-  @media (min-width: 820px) {
-    .auth-left { display: block; }
-    .card-logo, .card-powered, .card-title { display: none; }
-  }
+  .switch-mode a { color: var(--orange); font-weight: 600; cursor: pointer; text-decoration: none; transition: opacity .15s ease; }
+  .switch-mode a:hover { opacity: .8; }
 </style>
 </head>
 <body>
 
 <div class="grid-overlay"></div>
+<div class="glow-overlay"></div>
 
-<div class="auth-layout">
+<main class="auth-main">
 
-  <!-- Left branding — desktop only, no JS -->
-  <div class="auth-left">
+  <!-- Left branding -->
+  <section class="auth-left auth-fade">
     <div class="auth-logo-row">
+      <span class="auth-logo-glow" aria-hidden="true"></span>
       <img class="auth-logo-img" src="assets/algo-auto-ai-logo.png" alt="Algo Auto AI">
+      <p class="auth-logo-sub">Powered by AlgoBridge</p>
     </div>
-    <div class="auth-logo-sub" style="margin-bottom:14px;">Powered by AlgoBridge</div>
-    <div class="auth-tag">— Welcome back</div>
-    <h1 class="auth-heading">Your automation<br><span>command center.</span></h1>
+    <p class="auth-tag">— Welcome back</p>
+    <h1 class="auth-heading">Your AI dealership<br><span>operating system.</span></h1>
     <p class="auth-subtext">Sign in to monitor agents, capture leads after hours, and watch every workflow run in real time.</p>
     <div class="auth-status">
-      <span class="auth-status-dot">●</span>&nbsp; All systems operational &nbsp;·&nbsp; SOC 2 &nbsp;·&nbsp; 99.99% uptime
+      <span class="auth-status-item"><span class="auth-status-dot" aria-hidden="true"></span>All systems operational</span>
+      <span class="auth-status-sep" aria-hidden="true"></span>
+      <span>SOC2 Certified</span>
+      <span class="auth-status-sep" aria-hidden="true"></span>
+      <span>99.99% uptime</span>
     </div>
-  </div>
+  </section>
 
   <!-- Right: card — all existing IDs and onclick handlers untouched -->
-  <div class="auth-right">
+  <section class="auth-right auth-fade auth-fade-delay">
     <div class="login-box">
-
-      <!-- Mobile-only logo (hidden on desktop) -->
-      <div class="card-logo">
-        <img class="card-logo-img" src="assets/algo-auto-ai-logo.png" alt="Algo Auto AI">
-      </div>
-      <div class="card-powered">Powered by AlgoBridge</div>
-      <div class="card-title">Sign in</div>
 
       <p class="subtitle" id="subtitle">Sign in to your dashboard</p>
 
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="you@example.com" autocomplete="email">
+      <div class="auth-form-fields">
+        <div class="field-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@dealership.com" autocomplete="email">
+        </div>
 
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+        <div class="field-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••••" autocomplete="current-password">
+        </div>
 
-      <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
+        <button class="primary" id="submit-btn" onclick="handleSubmit()">Sign in</button>
 
-      <div style="text-align:right;margin-top:8px;margin-bottom:6px;">
-        <a id="forgot-link" style="font-size:12px;color:var(--orange);font-weight:600;cursor:pointer;text-decoration:none;" onclick="handleForgotPassword()">Forgot Password?</a>
+        <div class="forgot-row">
+          <a id="forgot-link" onclick="handleForgotPassword()">Forgot password?</a>
+        </div>
       </div>
 
-      <div class="divider">or</div>
+      <div class="divider"><span></span><em>or</em><span></span></div>
 
       <button class="google" onclick="loginWithGoogle()">
-        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+        <svg width="21" height="21" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
         Continue with Google
       </button>
 
@@ -312,9 +351,9 @@
         Don't have an account? <a onclick="toggleMode()">Create one</a>
       </div>
     </div>
-  </div>
+  </section>
 
-</div>
+</main>
 
 <script>
   let mode = 'login'; // 'login' or 'signup'
@@ -358,7 +397,7 @@
     }
 
     btn.disabled = true;
-    btn.innerText = mode === 'login' ? 'Signing in…' : 'Creating account…';
+    btn.innerHTML = '<span class="spinner"></span>' + (mode === 'login' ? 'Signing in…' : 'Creating account…');
     setMessage('', '');
 
     if (mode === 'login') {
